@@ -11,5 +11,5 @@ This phase will focus on the core pool management features. It will focus on bui
   * Multiple server pools can be managed at once.
   * Approximate number of messages features in SQS will be used to estimate server needs in each pool.
   * The pool manager will be deployable as either a standalone application or in a .war file
-
-
+  * Service instances will report busy/idle status to allow for a better assessment of server utilization
+  * Messages passed will be in XML format with a schema to be defined
