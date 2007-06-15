@@ -1,0 +1,157 @@
+<?xml version="1.0" standalone="yes"?>
+
+<project name="lifeguard" basedir="." default="compile">
+    <property name="lifeguard" value="${basedir}"/>
+    <property name="lifeguard.build" value="${lifeguard}/build" />
+    <property name="lifeguard.conf" value="${lifeguard}/conf" />
+    <property name="lifeguard.lib" value="lib" />
+    <property name="lifeguard.src" value="${lifeguard}/java" />
+	<property name="lifeguard.jar" value="${lifeguard.build}/jar" />
+	<property name="lifeguard.jar.file" value="${lifeguard.jar}/lifeguard.jar" />
+	<property name="lifeguard.sdbshell.jar.file" value="${lifeguard.jar}/sdbShell.jar" />
+    <property name="lifeguard.classes" value="${lifeguard.build}/classes" />
+    <property name="lifeguard.jar.classes" value="${lifeguard.jar}/classes" />
+    <property name="lifeguard.generated" value="${lifeguard.build}/generated" />
+    <property name="lifeguard.javadoc" value="${lifeguard.build}/apidocs" />
+    <property name="lifeguard.dist" value="${lifeguard}/dist" />
+
+	<path id="lifeguard.compile.classpath">
+          <fileset dir="${lifeguard.lib}">
+          </fileset>
+          <dirset dir="${lifeguard.classes}"/>
+	</path>
+
+	<taskdef name="xjc" classname="com.sun.tools.xjc.XJCTask">
+		<classpath>
+			<fileset dir="${lifeguard.lib}" includes="**/jaxb-xjc.jar"/>
+			<fileset dir="${lifeguard.lib}" includes="**/jaxb*.jar"/>
+		</classpath>
+	</taskdef>
+	
+	<target name="init">
+		<tstamp />
+		<mkdir dir="${lifeguard.build}" />
+		<mkdir dir="${lifeguard.classes}" />
+        <mkdir dir="${lifeguard.jar}" />
+        <mkdir dir="${lifeguard.javadoc}" />
+        <copy toDir="${lifeguard.classes}">
+            <fileset dir="${lifeguard.conf}"/>
+        </copy>
+	</target>
+
+	<target name="schema" depends="init">
+        <mkdir dir="${lifeguard.generated}/com/directthought/lifeguard/jaxb"/>
+		<echo>compiling the schema files in xsd to java files in ${lifeguard.generated}/com/directthought/lifeguard/jaxb</echo>
+		<xjc destdir="${lifeguard.generated}" extension="true" removeOldOutput="yes" package="com.directthought.lifeguard.jaxb">
+			<schema dir="xsd" includes="**/*.xsd"/>
+			<produces dir="${lifeguard.generated}/com/directthought/lifeguard/jaxb" includes="**/"/>
+		</xjc>
+	</target>
+
+	<!--compile Java source files-->
+	<target name="compile" depends="schema" description="Compile all Java source files">
+		<copy toDir="${lifeguard.classes}">
+			<fileset dir="xsd" includes="**/*"/>
+		</copy>
+		<javac srcdir="${lifeguard.generated}" includes="**/*.java" destdir="${lifeguard.classes}" debug="on">
+			<classpath refid="lifeguard.compile.classpath" />
+		</javac>
+		<copy todir="${lifeguard.classes}">
+			<fileset dir="${lifeguard.generated}" includes="**/*.ser"/>
+			<fileset dir="${lifeguard.generated}" includes="**/*.properties"/>
+		</copy>
+		<javac destdir="${lifeguard.classes}" debug="on">
+			<src path="${lifeguard.src}" />
+			<classpath refid="lifeguard.compile.classpath" />
+		</javac>
+    </target>
+
+	<target name="test.compile" depends="compile" description="Compile test java files">
+		<property name="test.src.path" value="test/java"/>
+		<javac destdir="${lifeguard.classes}" debug="on">
+			<src path="test/java" />
+			<classpath refid="lifeguard.compile.classpath" />
+		</javac>
+    </target>
+
+	<target name="jar" depends="compile">
+        <jar destfile="${lifeguard.jar.file}" basedir="${lifeguard.classes}" excludes="**/*.xml"/>
+	</target>
+
+	<target name="javadoc" depends="init">
+		<javadoc packagenames="com.directthought.*"
+				sourcepath="${lifeguard.src}"
+				defaultexcludes="yes"
+				destdir="${lifeguard.javadoc}"
+				author="true"
+				version="true"
+				use="true"
+				windowtitle="Lifeguard - An Amazon Server Pool Manager">
+			<classpath refid="lifeguard.compile.classpath"/>
+			<link href="http://java.sun.com/j2se/1.5.0/docs/api"/>
+		</javadoc>
+	</target>
+
+	<target name="clean" description="Deletes all the generated artifacts.">
+		<delete dir="${lifeguard.build}" />
+	</target>
+
+	<target name="dist" depends="clean, jar, javadoc">
+		<input message="Enter the version # : " addproperty="rel.version"/>
+		<mkdir dir="${lifeguard.dist}"/>
+		<zip destfile="${lifeguard.dist}/lifeguard-${rel.version}.zip">
+			<fileset file="${lifeguard.jar.file}"/>
+			<fileset file="README"/>
+			<fileset file="LICENSE.txt"/>
+            <fileset dir="${lifeguard.conf}" includes="**/*"/>
+			<fileset dir="${lifeguard.build}">
+				<include name="apidocs/**/*"/>
+			</fileset>
+		</zip>
+	</target>
+
+	<target name="sdbshell" depends="compile">
+		<antcall target="test.compile">
+			<param name="test.src.path" value="test/java/sdbShell.java"/>
+		</antcall>
+		<mkdir dir="${lifeguard.jar.classes}"/>
+		<unzip dest="${lifeguard.jar.classes}">
+			<fileset dir="${lifeguard.lib}">
+				<include name="activation.jar"/>
+				<include name="jaxb-api.jar"/>
+				<include name="jaxb-impl.jar"/>
+				<include name="jsr173_1.0_api.jar"/>
+				<include name="log4j-1.2.14.jar"/>
+			</fileset>
+		</unzip>
+		<jar destfile="${lifeguard.sdbshell.jar.file}">
+			<fileset dir="${lifeguard.classes}" includes="**/*" />
+			<fileset dir="${lifeguard.jar.classes}" includes="**/*" />
+			<manifest>
+				<attribute name="Main-Class" value="sdbShell"/>
+			</manifest>
+		</jar>
+	</target>
+
+	<target name="run" depends="compile">
+		<java fork="true" classname="com.directthought.lifeguard.RunManager">
+			<classpath>
+				<path refid="lifeguard.compile.classpath"/>
+				<pathelement location="${lifeguard.classes}"/>
+			</classpath>
+			<arg line="conf/poolconfig.xml"/>
+			<jvmarg value="-Djava.util.logging.config.file=conf/logging.properties"/>
+		</java>
+	</target>
+
+	<target name="test.main" depends="test.compile">
+		<java fork="true" classname="${class}">
+			<classpath>
+				<path refid="lifeguard.compile.classpath"/>
+				<pathelement location="${lifeguard.classes}"/>
+			</classpath>
+			<arg line="${args}"/>
+		</java>
+	</target>
+</project>
+
