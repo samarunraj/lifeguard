@@ -1,0 +1,97 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xmlns:tns="http://lifeguard.dotech.com/doc/2007-06-12/"
+		xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+		xmlns:xjc="http://java.sun.com/xml/ns/jaxb/xjc"
+		targetNamespace="http://lifeguard.dotech.com/doc/2007-06-12/"
+		jaxb:extensionBindingPrefixes="xjc"
+		jaxb:version="2.0"
+		elementFormDefault="qualified">
+  
+	<xs:annotation>
+		<xs:documentation xml:lang="en">
+		</xs:documentation>
+		<xs:appinfo>
+			<jaxb:globalBindings>
+				<xjc:simple/>
+			</jaxb:globalBindings>
+		</xs:appinfo>
+	</xs:annotation>
+  
+	<!-- service instance status messages -->
+  
+	<xs:element name="InstanceStatus">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="instanceId" type="xs:string" minOccurs="1" maxOccurs="1"/>
+				<xs:element name="state" minOccurs="1" maxOccurs="1">
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:enumeration value="busy"/>
+							<xs:enumeration value="idle"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="timestamp" type="xs:dateTime" minOccurs="1" maxOccurs="1"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+	<!-- work request/status messages -->
+
+	<xs:element name="WorkRequest">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Project" type="xs:string" minOccurs="1" maxOccurs="1"/>
+				<xs:element name="Batch" type="xs:string" minOccurs="1" maxOccurs="1"/>
+				<xs:element name="ServiceName" type="xs:string" minOccurs="1" maxOccurs="1"/>
+				<xs:element name="InputBucket" type="xs:string" minOccurs="1" maxOccurs="1"/>
+				<xs:element name="OutputBucket" type="xs:string" minOccurs="1" maxOccurs="1"/>
+				<xs:element name="Input" type="tns:fileRef" minOccurs="1" maxOccurs="1"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="WorkStatus">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Project" type="xs:string" minOccurs="1" maxOccurs="1"/>
+				<xs:element name="Batch" type="xs:string" minOccurs="1" maxOccurs="1"/>
+				<xs:element name="ServiceName" type="xs:string" minOccurs="1" maxOccurs="1"/>
+				<xs:element name="InputBucket" type="xs:string" minOccurs="1" maxOccurs="1"/>
+				<xs:element name="Input" type="tns:fileRef" minOccurs="1" maxOccurs="1"/>
+				<xs:element name="OutputBucket" type="xs:string" minOccurs="1" maxOccurs="1"/>
+				<xs:element name="Output" type="tns:fileRef" minOccurs="1" maxOccurs="unbounded"/>
+				<xs:element name="StartTime" type="xs:dateTime" minOccurs="1" maxOccurs="1"/>
+				<xs:element name="EndTime" type="xs:dateTime" minOccurs="1" maxOccurs="1"/>
+				<xs:element name="InstanceId" type="xs:string" minOccurs="1" maxOccurs="1"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+	<!-- types -->
+
+	<xs:complexType name="fileRef">
+		<xs:sequence>
+			<xs:element name="Key" type="xs:string" minOccurs="1" maxOccurs="1"/>
+			<xs:element name="Type" type="tns:mimeType" minOccurs="1" maxOccurs="1"/>
+			<xs:element name="Location" minOccurs="1" maxOccurs="1">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="client"/>
+						<xs:enumeration value="S3"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:simpleType name="mimeType">
+		<!-- This definition is kept loose to minimize the changes required when -->
+		<!-- adding new mime types. -->
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[a-z]/[a-z]"/>
+		</xs:restriction>
+	</xs:simpleType>
+
+</xs:schema> 

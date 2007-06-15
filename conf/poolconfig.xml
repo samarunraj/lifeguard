@@ -1,0 +1,8 @@
+<PoolConfig xmlns="http://lifeguard-config.dotech.com/doc/2007-06-12/">
+	<ServiceName>testSvc</ServiceName>
+	<ServiceAMI>ami-20b65349</ServiceAMI>
+	<PoolStatusQueue>poolStatus</PoolStatusQueue>
+	<ServiceWorkQueue>test-input</ServiceWorkQueue>
+	<RampUpInterval>2</RampUpInterval>
+	<RampDownInterval>1</RampDownInterval>
+</PoolConfig>

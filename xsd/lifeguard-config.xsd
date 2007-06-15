@@ -1,0 +1,32 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xmlns:tns="http://lifeguard-config.dotech.com/doc/2007-06-12/"
+		xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+		xmlns:xjc="http://java.sun.com/xml/ns/jaxb/xjc"
+		targetNamespace="http://lifeguard-config.dotech.com/doc/2007-06-12/"
+		jaxb:extensionBindingPrefixes="xjc"
+		jaxb:version="2.0"
+		elementFormDefault="qualified">
+  
+	<!-- pool config file format -->
+  
+	<xs:element name="PoolConfig">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="ServiceName" minOccurs="1" maxOccurs="1">
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:pattern value="[a-z]|[A-Z]"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="ServiceAMI" type="xs:string" minOccurs="1" maxOccurs="1"/>
+				<xs:element name="PoolStatusQueue" type="xs:string" minOccurs="1" maxOccurs="1"/>
+				<xs:element name="ServiceWorkQueue" type="xs:string" minOccurs="1" maxOccurs="1"/>
+				<xs:element name="RampUpInterval" type="xs:int" minOccurs="1" maxOccurs="1"/>
+				<xs:element name="RampDownInterval" type="xs:int" minOccurs="1" maxOccurs="1"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+</xs:schema> 
