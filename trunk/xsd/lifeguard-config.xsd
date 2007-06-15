@@ -13,18 +13,28 @@
 	<xs:element name="PoolConfig">
 		<xs:complexType>
 			<xs:sequence>
-				<xs:element name="ServiceName" minOccurs="1" maxOccurs="1">
-					<xs:simpleType>
-						<xs:restriction base="xs:string">
-							<xs:pattern value="[a-z]|[A-Z]"/>
-						</xs:restriction>
-					</xs:simpleType>
+				<xs:element name="ServicePool" minOccurs="1" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="ServiceName" minOccurs="1" maxOccurs="1">
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:pattern value="[a-z]|[A-Z]"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="ServiceAMI" type="xs:string" minOccurs="1" maxOccurs="1"/>
+							<xs:element name="PoolStatusQueue" type="xs:string" minOccurs="1" maxOccurs="1"/>
+							<xs:element name="ServiceWorkQueue" type="xs:string" minOccurs="1" maxOccurs="1"/>
+							<xs:element name="RampUpInterval" type="xs:int" minOccurs="1" maxOccurs="1"/>
+							<xs:element name="RampUpDelay" type="xs:int" minOccurs="1" maxOccurs="1"/>
+							<xs:element name="RampDownInterval" type="xs:int" minOccurs="1" maxOccurs="1"/>
+							<xs:element name="RampDownDelay" type="xs:int" minOccurs="1" maxOccurs="1"/>
+							<xs:element name="MinSize" type="xs:int" minOccurs="1" maxOccurs="1"/>
+							<xs:element name="MaxSize" type="xs:int" minOccurs="1" maxOccurs="1"/>
+						</xs:sequence>
+					</xs:complexType>
 				</xs:element>
-				<xs:element name="ServiceAMI" type="xs:string" minOccurs="1" maxOccurs="1"/>
-				<xs:element name="PoolStatusQueue" type="xs:string" minOccurs="1" maxOccurs="1"/>
-				<xs:element name="ServiceWorkQueue" type="xs:string" minOccurs="1" maxOccurs="1"/>
-				<xs:element name="RampUpInterval" type="xs:int" minOccurs="1" maxOccurs="1"/>
-				<xs:element name="RampDownInterval" type="xs:int" minOccurs="1" maxOccurs="1"/>
 			</xs:sequence>
 		</xs:complexType>
 	</xs:element>

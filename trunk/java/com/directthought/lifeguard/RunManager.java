@@ -24,8 +24,8 @@ public class RunManager {
 		try {
 			PoolConfig config = JAXBuddy.deserializeXMLStream(PoolConfig.class,
 											new FileInputStream(args[0]));
-			PoolManager mgr = new PoolManager("0ZZXAZ980M9J5PPCFTR2", "4sWhM1t3obEYOr2ZkqbcwaWozM+ayVmKfRm/1rjC", "dak", config);
-			mgr.run();
+			PoolSupervisor visor = new PoolSupervisor("0ZZXAZ980M9J5PPCFTR2", "4sWhM1t3obEYOr2ZkqbcwaWozM+ayVmKfRm/1rjC", "dak", config);
+			visor.run();
 		} catch (FileNotFoundException ex) {
 			logger.error("Count not find config file : "+args[0], ex);
 		} catch (IOException ex) {
