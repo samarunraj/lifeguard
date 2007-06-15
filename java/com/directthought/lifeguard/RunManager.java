@@ -17,6 +17,9 @@ import com.directthought.lifeguard.jaxb.PoolConfig;
 public class RunManager {
 	private static Log logger = LogFactory.getLog(RunManager.class);
 
+	final String AWSAccessKeyId = "[AWS Access Id]";
+	final String SecretAccessKey = "[AWS Secret Key]";
+
 	public static void main(String [] args) {
 		if (args.length != 1) {
 			System.out.println("usage: RunManager <poolconfig.xml>");
@@ -24,7 +27,7 @@ public class RunManager {
 		try {
 			PoolConfig config = JAXBuddy.deserializeXMLStream(PoolConfig.class,
 											new FileInputStream(args[0]));
-			PoolSupervisor visor = new PoolSupervisor("0ZZXAZ980M9J5PPCFTR2", "4sWhM1t3obEYOr2ZkqbcwaWozM+ayVmKfRm/1rjC", "dak", config);
+			PoolSupervisor visor = new PoolSupervisor(AWSAccessKeyId, SecretAccessKey, "dak", config);
 			visor.run();
 		} catch (FileNotFoundException ex) {
 			logger.error("Count not find config file : "+args[0], ex);
