@@ -1,6 +1,7 @@
 
 package com.directthought.lifeguard;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import java.util.concurrent.ArrayBlockingQueue;
@@ -20,13 +21,14 @@ public class PoolSupervisor implements Runnable {
 	private String awsSecretKey;
 	private String queuePrefix;
 	private PoolConfig config;
-
+	private List<PoolManager> pools;
 
 	public PoolSupervisor(String awsAccessId, String awsSecretKey, String queuePrefix, PoolConfig config) {
 		this.awsAccessId = awsAccessId;
 		this.awsSecretKey = awsSecretKey;
 		this.queuePrefix = queuePrefix;
 		this.config = config;
+		pools = new ArrayList<PoolManager>();
 	}
 
 	public void run() {
@@ -35,16 +37,24 @@ public class PoolSupervisor implements Runnable {
 											TimeUnit.SECONDS, new ArrayBlockingQueue(30));
 			pool.setRejectedExecutionHandler(new RejectedExecutionHandler() {
 					public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-						// just retry it
 						//executor.execute(r);
 					}
 				});
 			List<PoolConfig.ServicePool> configs = config.getServicePools();
 			for (PoolConfig.ServicePool poolCfg : configs) {
-				pool.execute(new PoolManager(awsAccessId, awsSecretKey, queuePrefix, poolCfg));
+				PoolManager pm = new PoolManager(awsAccessId, awsSecretKey, queuePrefix, poolCfg);
+				pool.execute(pm);
+				pools.add(pm);
 			}
+			pool.shutdown();	// pre-emptive
 		} catch (Throwable t) {
-			logger.error(t);
+			logger.error("something went horribly wrong when the pool supervisor tried to run pool managers!", t);
+		}
+	}
+
+	public void shutdown() {
+		for (PoolManager pm : pools) {
+			pm.shutdown();
 		}
 	}
 }

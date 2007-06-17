@@ -1,8 +1,10 @@
 
 package com.directthought.lifeguard;
 
+import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.io.IOException;
 
 import javax.xml.bind.JAXBException;
@@ -17,8 +19,10 @@ import com.directthought.lifeguard.jaxb.PoolConfig;
 public class RunManager {
 	private static Log logger = LogFactory.getLog(RunManager.class);
 
-	final String AWSAccessKeyId = "[AWS Access Id]";
-	final String SecretAccessKey = "[AWS Secret Key]";
+//	final static String AWSAccessKeyId = "[AWS Access Id]";
+//	final static String SecretAccessKey = "[AWS Secret Key]";
+	final static String AWSAccessKeyId = "0ZZXAZ980M9J5PPCFTR2";
+	final static String SecretAccessKey = "4sWhM1t3obEYOr2ZkqbcwaWozM+ayVmKfRm/1rjC";
 
 	public static void main(String [] args) {
 		if (args.length != 1) {
@@ -29,6 +33,16 @@ public class RunManager {
 											new FileInputStream(args[0]));
 			PoolSupervisor visor = new PoolSupervisor(AWSAccessKeyId, SecretAccessKey, "dak", config);
 			visor.run();
+			BufferedReader rdr = new BufferedReader(new InputStreamReader(System.in));
+			while (true) {
+				rdr.readLine();
+				System.out.print("Do you want to exit? (Y/n) :");
+				String line = rdr.readLine();
+				if (!line.toLowerCase().equals("n")) {
+					break;
+				}
+			}
+			visor.shutdown();
 		} catch (FileNotFoundException ex) {
 			logger.error("Count not find config file : "+args[0], ex);
 		} catch (IOException ex) {

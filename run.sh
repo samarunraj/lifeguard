@@ -1,0 +1,1 @@
+"$JAVA_HOME/bin/java" -classpath "lib/activation.jar;lib/commons-logging-1.1.jar;lib/jaxb-api.jar;lib/jaxb-impl.jar;lib/jsr173_1.0_api.jar;lib/typica.jar;build/classes" com.directthought.lifeguard.RunManager conf/poolConfig.xml

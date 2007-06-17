@@ -11,7 +11,10 @@ import javax.xml.bind.JAXBException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import ch.inventec.Base64Coder;
+
 import com.xerox.amazonws.common.JAXBuddy;
+import com.xerox.amazonws.ec2.EC2Exception;
 import com.xerox.amazonws.ec2.Jec2;
 import com.xerox.amazonws.ec2.ReservationDescription;
 import com.xerox.amazonws.sqs.Message;
@@ -28,48 +31,60 @@ public class PoolManager implements Runnable {
 	// configuration items
 	private String awsAccessId;
 	private String awsSecretKey;
-	private String queuePrefix;
+	private String serverGroupName;
 	private ServicePool config;
 
 	// runtime data - stuff to save when saving state
 	private List<String> busyInstances;
 	private List<String> idleInstances;
 
+	// transient data - not important to save
+	private String usrData;
+	private boolean keepRunning = true;
+
 	/**
 	 * This constructs a queue manager.
 	 *
 	 * @param awsAccessId
 	 * @param awsSecretKey
-	 * @param queuePrefix
+	 * @param serverGroupName
 	 */
-	public PoolManager(String awsAccessId, String awsSecretKey, String queuePrefix, ServicePool config) {
+	public PoolManager(String awsAccessId, String awsSecretKey, String serverGroupName, ServicePool config) {
 		this.awsAccessId = awsAccessId;
 		this.awsSecretKey = awsSecretKey;
-		this.queuePrefix = queuePrefix;
+		this.serverGroupName = serverGroupName;
 		this.config = config;
 		busyInstances = new ArrayList<String>();
 		idleInstances = new ArrayList<String>();
+		usrData = Base64Coder.encodeString(awsAccessId+" "+awsSecretKey+" "
+											+serverGroupName+" "+config.getServiceName());
 	}
 
 	public void run() {
 		try {
-			QueueService qs = new QueueService(this.awsAccessId, this.awsSecretKey);
-			MessageQueue statusQueue = getQueueOrElse(qs, this.queuePrefix+config.getPoolStatusQueue());
-			MessageQueue workQueue = getQueueOrElse(qs, this.queuePrefix+config.getServiceWorkQueue());
+			// fire up min servers first. They take a least 2 minutes to start up
+			int min = config.getMinSize();
+			if (min > 0) {
+				launchInstances(min);
+			}
+			QueueService qs = new QueueService(awsAccessId, awsSecretKey);
+			MessageQueue statusQueue = getQueueOrElse(qs, serverGroupName+config.getPoolStatusQueue());
+			MessageQueue workQueue = getQueueOrElse(qs, serverGroupName+config.getServiceWorkQueue());
 
 			// TODO - don't count loop iterations, track real time passage
-			int busyTimer = 0;	// used to track time pool has no idle capacity
-			int idleTimer = 0;	// used to track time pool has spare capacity
+			long startBusyInterval = 0;	// used to track time pool has no idle capacity
+			long startIdleInterval = 0;	// used to track time pool has spare capacity
 
 			// now, loop forever, checking for busy status and checking work queue size
 			logger.info("Starting PoolManager for service : "+config.getServiceName());
-			while (true) {
+			while (keepRunning) {
 				Message msg = null;
 				try {
 					msg = statusQueue.receiveMessage();
 				} catch (SQSException ex) {
 					logger.error("Error reading message, Retrying.", ex);
 				}
+				if (!keepRunning) break;	// fast exit
 				if (msg != null) {	// process status message
 					logger.debug("got instance status message");
 					// parse it, then deal with it
@@ -90,12 +105,16 @@ public class PoolManager implements Runnable {
 
 						// now, see if were full busy, or somewhat idle
 						if (idleInstances.size() == 0) { // busy!
-							busyTimer++;
-							idleTimer = 0;
+							if (startBusyInterval == 0) {
+								startBusyInterval = System.currentTimeMillis();
+							}
+							startIdleInterval = 0;
 						}
 						else {
-							idleTimer++;
-							busyTimer = 0;
+							if (startIdleInterval == 0) {
+								startIdleInterval = System.currentTimeMillis();
+							}
+							startBusyInterval = 0;
 						}
 					} catch (JAXBException ex) {
 						logger.error("Problem parsing instance status!", ex);
@@ -106,6 +125,7 @@ public class PoolManager implements Runnable {
 				try {
 					int queueDepth = workQueue.getApproximateNumberOfMessages();
 					logger.debug("queue depth = "+queueDepth);
+					if (!keepRunning) break;	// fast exit
 					// now, based on busy/idle timers and queue depth, make a call on
 					// whether to start or terminate servers
 					// TODO
@@ -113,12 +133,20 @@ public class PoolManager implements Runnable {
 					logger.error("Error getting queue depth, Retrying.", ex);
 				}
 				logger.info("loop bottom");
-				try { Thread.sleep(2000); } catch (InterruptedException iex) { }
+				try { Thread.sleep(4000); } catch (InterruptedException iex) { }
 			}
-
+			// when loop exits, shut down all instances
+			logger.info("Shutting down PoolManager for service : "+config.getServiceName());
+			idleInstances.addAll(busyInstances);
+			busyInstances.clear();
+			terminateInstances(idleInstances.toArray(new String [] {}));
 		} catch (Throwable t) {
-			logger.error(t);
+			logger.error("something went horribly wrong in the pool manager main loop!", t);
 		}
+	}
+
+	public void shutdown() {
+		keepRunning = false;
 	}
 
 	private MessageQueue getQueueOrElse(QueueService qs, String queueName) {
@@ -134,9 +162,37 @@ public class PoolManager implements Runnable {
 		return ret;
 	}
 
+	// Launches server(s) with user data of "accessId secretKey serverGroupName serviceName"
 	private void launchInstances(int numToLaunch) {
+		logger.debug("Starting "+numToLaunch+" server(s)");
+		try {
+			Jec2 ec2 = new Jec2(awsAccessId, awsSecretKey);
+			ReservationDescription result = ec2.runInstances(config.getServiceAMI(),
+														numToLaunch, numToLaunch, null,
+														usrData, serverGroupName+"-keypair");
+			List<ReservationDescription.Instance> servers = result.getInstances();
+			if (servers.size() < numToLaunch) {
+				logger.warn("Failed to lanuch desired number of servers. ("
+								+servers.size()+" instead of "+numToLaunch+")");
+			}
+			for (ReservationDescription.Instance s : servers) {
+				idleInstances.add(s.getInstanceId());
+			}
+		} catch (EC2Exception ex) {
+			logger.warn("Failed to launch instance(s). Will retry");
+		}
 	}
 
-	private void terminateInstance(String instanceId) {
+	private void terminateInstances(String [] instanceIds) {
+		logger.debug("Stopping server(s)");
+		try {
+			Jec2 ec2 = new Jec2(awsAccessId, awsSecretKey);
+			ec2.terminateInstances(instanceIds);
+			for (String id : instanceIds) {
+				idleInstances.remove(id);
+			}
+		} catch (EC2Exception ex) {
+			logger.warn("Failed to terminate instance. Will retry");
+		}
 	}
 }
