@@ -19,10 +19,8 @@ import com.directthought.lifeguard.jaxb.PoolConfig;
 public class RunManager {
 	private static Log logger = LogFactory.getLog(RunManager.class);
 
-//	final static String AWSAccessKeyId = "[AWS Access Id]";
-//	final static String SecretAccessKey = "[AWS Secret Key]";
-	final static String AWSAccessKeyId = "0ZZXAZ980M9J5PPCFTR2";
-	final static String SecretAccessKey = "4sWhM1t3obEYOr2ZkqbcwaWozM+ayVmKfRm/1rjC";
+	final static String AWSAccessKeyId = "[AWS Access Id]";
+	final static String SecretAccessKey = "[AWS Secret Key]";
 
 	public static void main(String [] args) {
 		if (args.length != 1) {
