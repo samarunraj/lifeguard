@@ -8,7 +8,7 @@
 		<RampUpDelay>60</RampUpDelay>
 		<RampDownInterval>1</RampDownInterval>
 		<RampDownDelay>120</RampDownDelay>
-		<MinSize>0</MinSize>
+		<MinSize>1</MinSize>
 		<MaxSize>5</MaxSize>
 	</ServicePool>
 	<ServicePool>
@@ -23,4 +23,6 @@
 		<MinSize>0</MinSize>
 		<MaxSize>2</MaxSize>
 	</ServicePool>
+<!--
+-->
 </PoolConfig>
