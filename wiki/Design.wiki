@@ -18,7 +18,7 @@ This is a list of design details that will go into the core pool manager
  * A base service implementation will be built to handle workflow message, status reporting, file transfer (with S3)
  * An ingestion class will be written to take data into the system for processing through a defined workflow. There will need to be at least one UI built for this class. (i.e. command line, GUI, web form).
 
-== Pool Management Options ==
+=== Pool Management Options ===
 
 There are some measurements we can use to quantify the state of the pool and it's ability to handle the work load. This is a list of values are;
  * idle interval
@@ -28,3 +28,4 @@ There are some measurements we can use to quantify the state of the pool and it'
  * pool size
  * number of messages in the work queue
 
+If the pool is idle, there should be the min servers running. If the pool is fully busy, all servers will be busy and the number of servers will be at the max. If the pool has been busy (no idle servers) and the pool isn't at max size, when the ramp up delay has passed, more server will be added (based on a configurable value)
