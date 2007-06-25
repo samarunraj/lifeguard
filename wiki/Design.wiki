@@ -28,4 +28,9 @@ There are some measurements we can use to quantify the state of the pool and it'
  * pool size
  * number of messages in the work queue
 
-If the pool is idle, there should be the min servers running. If the pool is fully busy, all servers will be busy and the number of servers will be at the max. If the pool has been busy (no idle servers) and the pool isn't at max size, when the ramp up delay has passed, more server will be added (based on a configurable value)
+If the pool is idle, there should be the min servers running.
+If the pool is fully busy, all servers will be busy and the number of servers will be at the max.
+If the pool has been busy (no idle servers) and the pool isn't at max size, when the ramp up delay has passed, more server will be added (based on a configurable value)
+If the pool is partially idle (some servers busy, some servers idle), when the ramp down delay has passed, some servers should be shut down.
+If there are messages in the queue, the pool should not be ramped down.
+If there are messages in the queue and the pool is being ramped up, the number of servers added should be based on some combination of the ramp up interval and the number of messages in the queue.
