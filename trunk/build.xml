@@ -8,7 +8,6 @@
     <property name="lifeguard.src" value="${lifeguard}/java" />
 	<property name="lifeguard.jar" value="${lifeguard.build}/jar" />
 	<property name="lifeguard.jar.file" value="${lifeguard.jar}/lifeguard.jar" />
-	<property name="lifeguard.sdbshell.jar.file" value="${lifeguard.jar}/sdbShell.jar" />
     <property name="lifeguard.classes" value="${lifeguard.build}/classes" />
     <property name="lifeguard.jar.classes" value="${lifeguard.jar}/classes" />
     <property name="lifeguard.generated" value="${lifeguard.build}/generated" />
@@ -110,29 +109,6 @@
 		</zip>
 	</target>
 
-	<target name="sdbshell" depends="compile">
-		<antcall target="test.compile">
-			<param name="test.src.path" value="test/java/sdbShell.java"/>
-		</antcall>
-		<mkdir dir="${lifeguard.jar.classes}"/>
-		<unzip dest="${lifeguard.jar.classes}">
-			<fileset dir="${lifeguard.lib}">
-				<include name="activation.jar"/>
-				<include name="jaxb-api.jar"/>
-				<include name="jaxb-impl.jar"/>
-				<include name="jsr173_1.0_api.jar"/>
-				<include name="log4j-1.2.14.jar"/>
-			</fileset>
-		</unzip>
-		<jar destfile="${lifeguard.sdbshell.jar.file}">
-			<fileset dir="${lifeguard.classes}" includes="**/*" />
-			<fileset dir="${lifeguard.jar.classes}" includes="**/*" />
-			<manifest>
-				<attribute name="Main-Class" value="sdbShell"/>
-			</manifest>
-		</jar>
-	</target>
-
 	<target name="run" depends="compile">
 		<java fork="true" classname="com.directthought.lifeguard.RunManager">
 			<classpath>
@@ -151,6 +127,45 @@
 				<pathelement location="${lifeguard.classes}"/>
 			</classpath>
 			<arg line="${args}"/>
+		</java>
+	</target>
+
+	<target name="dequeue" depends="test.compile">
+		<java fork="true" classname="EnqueueSample">
+			<classpath>
+				<path refid="lifeguard.compile.classpath"/>
+				<pathelement location="${lifeguard.classes}"/>
+			</classpath>
+			<arg line="${queue}"/>
+		</java>
+	</target>
+
+	<target name="enqueue" depends="test.compile">
+		<java fork="true" classname="EnqueueSample">
+			<classpath>
+				<path refid="lifeguard.compile.classpath"/>
+				<pathelement location="${lifeguard.classes}"/>
+			</classpath>
+			<arg line="${queue} ${msg}"/>
+		</java>
+	</target>
+
+	<target name="setstate" depends="test.compile">
+		<java fork="true" classname="SetState">
+			<classpath>
+				<path refid="lifeguard.compile.classpath"/>
+				<pathelement location="${lifeguard.classes}"/>
+			</classpath>
+			<arg line="${id} ${state}"/>
+		</java>
+	</target>
+
+	<target name="addwork" depends="test.compile">
+		<java fork="true" classname="AddWork">
+			<classpath>
+				<path refid="lifeguard.compile.classpath"/>
+				<pathelement location="${lifeguard.classes}"/>
+			</classpath>
 		</java>
 	</target>
 </project>

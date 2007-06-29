@@ -32,6 +32,12 @@
 							<xs:element name="RampDownDelay" type="xs:int" minOccurs="1" maxOccurs="1"/>
 							<xs:element name="MinSize" type="xs:int" minOccurs="1" maxOccurs="1"/>
 							<xs:element name="MaxSize" type="xs:int" minOccurs="1" maxOccurs="1"/>
+							<!-- queue size affects ramp-up. #msgs in queue / queueSizeFactor -->
+							<!-- is a multiplier on rampUpInterval                            -->
+							<!-- i.e. if RampUpInterval = 2, QueueSizeFactor = 10 and 20 msgs -->
+							<!-- are in the queue and servers are busy for RampUpDelay,       -->
+							<!-- 4 servers will be started (2 * (20/10)) = 4                  -->
+							<xs:element name="QueueSizeFactor" type="xs:int" minOccurs="1" maxOccurs="1"/>
 						</xs:sequence>
 					</xs:complexType>
 				</xs:element>
