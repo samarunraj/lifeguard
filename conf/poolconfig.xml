@@ -9,8 +9,10 @@
 		<RampDownInterval>1</RampDownInterval>
 		<RampDownDelay>120</RampDownDelay>
 		<MinSize>1</MinSize>
-		<MaxSize>5</MaxSize>
+		<MaxSize>20</MaxSize>
+		<QueueSizeFactor>1</QueueSizeFactor>
 	</ServicePool>
+<!--
 	<ServicePool>
 		<ServiceName>testSvc2</ServiceName>
 		<ServiceAMI>ami-20b65349</ServiceAMI>
@@ -22,7 +24,7 @@
 		<RampDownDelay>120</RampDownDelay>
 		<MinSize>0</MinSize>
 		<MaxSize>2</MaxSize>
+		<QueueSizeFactor>10</QueueSizeFactor>
 	</ServicePool>
-<!--
 -->
 </PoolConfig>
