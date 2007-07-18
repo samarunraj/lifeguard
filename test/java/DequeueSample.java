@@ -39,7 +39,7 @@ public class DequeueSample {
 			while (true) {
 				msg = msgQueue.receiveMessage();
 				if (msg == null) {
-					logger.debug("nothing... retrying");
+					logger.info("nothing... retrying");
 					try { Thread.sleep(1000); } catch (Exception ex) {}
 					continue;
 				}

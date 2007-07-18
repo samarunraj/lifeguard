@@ -12,23 +12,27 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import org.springframework.beans.factory.BeanFactory;
+
 import com.directthought.lifeguard.jaxb.PoolConfig;
 
 public class PoolSupervisor implements Runnable {
 	private static Log logger = LogFactory.getLog(PoolSupervisor.class);
 
-	private String awsAccessId;
-	private String awsSecretKey;
-	private String queuePrefix;
 	private PoolConfig config;
 	private List<PoolManager> pools;
+	private BeanFactory factory;
 
-	public PoolSupervisor(String awsAccessId, String awsSecretKey, String queuePrefix, PoolConfig config) {
-		this.awsAccessId = awsAccessId;
-		this.awsSecretKey = awsSecretKey;
-		this.queuePrefix = queuePrefix;
-		this.config = config;
+	public PoolSupervisor() {
 		pools = new ArrayList<PoolManager>();
+	}
+
+	public void setPoolConfig(PoolConfig config) {
+		this.config = config;
+	}
+
+	public void setBeanFactory(BeanFactory factory) {
+		this.factory = factory;
 	}
 
 	public void run() {
@@ -42,7 +46,8 @@ public class PoolSupervisor implements Runnable {
 				});
 			List<PoolConfig.ServicePool> configs = config.getServicePools();
 			for (PoolConfig.ServicePool poolCfg : configs) {
-				PoolManager pm = new PoolManager(awsAccessId, awsSecretKey, queuePrefix, poolCfg);
+				PoolManager pm = (PoolManager)factory.getBean("manager");
+				pm.setPoolConfig(poolCfg);
 				pool.execute(pm);
 				pools.add(pm);
 			}

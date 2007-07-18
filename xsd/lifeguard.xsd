@@ -32,6 +32,7 @@
 						</xs:restriction>
 					</xs:simpleType>
 				</xs:element>
+				<xs:element name="LastInterval" type="xs:duration" minOccurs="1" maxOccurs="1"/>
 				<xs:element name="Timestamp" type="xs:dateTime" minOccurs="1" maxOccurs="1"/>
 			</xs:sequence>
 		</xs:complexType>

@@ -27,7 +27,7 @@ public class AddWork {
 			}
 
 			// Create the message queue object
-			MessageQueue msgQueue = SQSUtils.connectToQueue("test-input", AWSAccessKeyId, SecretAccessKey);
+			MessageQueue msgQueue = SQSUtils.connectToQueue("daktest-input", AWSAccessKeyId, SecretAccessKey);
 
 			String msg = "<WorkRequest xmlns=\"http://lifeguard.dotech.com/doc/2007-06-12/\"><Project>TestProj</Project><Batch>1001</Batch><ServiceName>ingestor</ServiceName><inputBucket>testbuck</inputBucket><OutputBucket>testbuck</OutputBucket><Input>sampleS3key</Input></WorkRequest>";
 			String msgId = msgQueue.sendMessage( Base64Coder.encodeString(msg) );

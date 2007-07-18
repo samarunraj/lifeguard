@@ -131,7 +131,7 @@
 	</target>
 
 	<target name="dequeue" depends="test.compile">
-		<java fork="true" classname="EnqueueSample">
+		<java fork="true" classname="DequeueSample">
 			<classpath>
 				<path refid="lifeguard.compile.classpath"/>
 				<pathelement location="${lifeguard.classes}"/>
@@ -156,7 +156,7 @@
 				<path refid="lifeguard.compile.classpath"/>
 				<pathelement location="${lifeguard.classes}"/>
 			</classpath>
-			<arg line="${id} ${state}"/>
+			<arg line="${id} ${state} ${duration}"/>
 		</java>
 	</target>
 

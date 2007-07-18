@@ -8,9 +8,9 @@
 		<RampUpDelay>60</RampUpDelay>
 		<RampDownInterval>1</RampDownInterval>
 		<RampDownDelay>120</RampDownDelay>
-		<MinSize>1</MinSize>
+		<MinSize>0</MinSize>
 		<MaxSize>20</MaxSize>
-		<QueueSizeFactor>1</QueueSizeFactor>
+		<QueueSizeFactor>10</QueueSizeFactor>
 	</ServicePool>
 <!--
 	<ServicePool>

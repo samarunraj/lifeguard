@@ -23,15 +23,16 @@ public class SetState {
 
 		try {
 			if (args.length < 2) {
-				logger.error("usage: SetState <instanceId> <state>");
+				logger.error("usage: SetState <instanceId> <state> <duration>");
 			}
 			String instanceId = args[0];
 			String state = args[1];
+			String duration = args[2];
 
 			// Create the message queue object
 			MessageQueue msgQueue = SQSUtils.connectToQueue("poolStatusTest", AWSAccessKeyId, SecretAccessKey);
 
-			String msg = "<InstanceStatus xmlns=\"http://lifeguard.dotech.com/doc/2007-06-12/\"><InstanceId>"+instanceId+"</InstanceId><State>"+state+"</State><Timestamp></Timestamp></InstanceStatus>";
+			String msg = "<InstanceStatus xmlns=\"http://lifeguard.dotech.com/doc/2007-06-12/\"><InstanceId>"+instanceId+"</InstanceId><State>"+state+"</State><LastInterval>P"+duration+"M</LastInterval><Timestamp></Timestamp></InstanceStatus>";
 			String msgId = msgQueue.sendMessage( Base64Coder.encodeString(msg) );
 			logger.info( "Sent message with id " + msgId );
 		} catch ( Exception ex ) {
