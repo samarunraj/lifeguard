@@ -1,0 +1,38 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xmlns:tns="http://lifeguard-ws.dotech.com/doc/2007-06-12/"
+		xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+		xmlns:xjc="http://java.sun.com/xml/ns/jaxb/xjc"
+		targetNamespace="http://lifeguard-ws.dotech.com/doc/2007-06-12/"
+		jaxb:extensionBindingPrefixes="xjc"
+		jaxb:version="2.0"
+		elementFormDefault="qualified">
+  
+	<!-- workflow def -->
+
+	<xs:element name="Workflow">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Service" type="tns:Service" minOccurs="1" maxOccurs="unbounded"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:complexType name="Service">
+		<xs:sequence>
+			<xs:element name="Name" type="xs:string" minOccurs="1" maxOccurs="1"/>
+			<xs:element name="WorkQueue" type="xs:string" minOccurs="1" maxOccurs="1"/>
+			<xs:element name="InputType" type="tns:mimeType" minOccurs="1" maxOccurs="1"/>
+			<xs:element name="OutputType" type="tns:mimeType" minOccurs="1" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:simpleType name="mimeType">
+		<!-- This definition is kept loose to minimize the changes required when -->
+		<!-- adding new mime types. -->
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[a-z]/[a-z]"/>
+		</xs:restriction>
+	</xs:simpleType>
+
+</xs:schema> 

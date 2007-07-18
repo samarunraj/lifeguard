@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+
+<beans>
+	<bean id="supervisor" class="com.directthought.lifeguard.PoolSupervisor">
+	</bean>
+	<bean id="manager" class="com.directthought.lifeguard.PoolManager" singleton="false">
+		<property name="accessId" value="${aws.accessId}"/>
+		<property name="secretKey" value="${aws.secretKey}"/>
+		<property name="queuePrefix" value="${aws.queuePrefix}"/>
+		<property name="poolMonitor"><ref bean="monitor"/></property>
+	</bean>
+	<!--
+	<bean id="monitor" class="com.directthought.lifeguard.StderrPoolMonitor" singleton="false"/>
+	-->
+	<bean id="monitor" class="SimulateServers" singleton="false">
+		<property name="accessId" value="${aws.accessId}"/>
+		<property name="secretKey" value="${aws.secretKey}"/>
+		<property name="queuePrefix" value="${aws.queuePrefix}"/>
+	</bean>
+</beans>

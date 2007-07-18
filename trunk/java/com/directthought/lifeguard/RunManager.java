@@ -12,6 +12,10 @@ import javax.xml.bind.JAXBException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
+import org.springframework.beans.factory.xml.XmlBeanFactory;
+import org.springframework.core.io.ClassPathResource;
+
 import com.xerox.amazonws.common.JAXBuddy;
 
 import com.directthought.lifeguard.jaxb.PoolConfig;
@@ -19,20 +23,23 @@ import com.directthought.lifeguard.jaxb.PoolConfig;
 public class RunManager {
 	private static Log logger = LogFactory.getLog(RunManager.class);
 
-//	final static String AWSAccessKeyId = "[AWS Access Id]";
-//	final static String SecretAccessKey = "[AWS Secret Key]";
-	final static String AWSAccessKeyId = "0ZZXAZ980M9J5PPCFTR2";
-	final static String SecretAccessKey = "4sWhM1t3obEYOr2ZkqbcwaWozM+ayVmKfRm/1rjC";
-
 	public static void main(String [] args) {
 		if (args.length != 1) {
 			System.out.println("usage: RunManager <poolconfig.xml>");
 		}
+
+		XmlBeanFactory factory = new XmlBeanFactory(new ClassPathResource("beans.xml"));
+		PropertyPlaceholderConfigurer cfg = new PropertyPlaceholderConfigurer();
+		cfg.setLocation(new ClassPathResource("aws.properties"));
+		cfg.postProcessBeanFactory(factory);
+
 		try {
 			PoolConfig config = JAXBuddy.deserializeXMLStream(PoolConfig.class,
 											new FileInputStream(args[0]));
-			PoolSupervisor visor = new PoolSupervisor(AWSAccessKeyId, SecretAccessKey, "dak", config);
-			visor.run();
+			PoolSupervisor superVisor = (PoolSupervisor)factory.getBean("supervisor");
+			superVisor.setPoolConfig(config);
+			superVisor.setBeanFactory(factory);
+			superVisor.run();
 			BufferedReader rdr = new BufferedReader(new InputStreamReader(System.in));
 			while (true) {
 				rdr.readLine();
@@ -42,7 +49,7 @@ public class RunManager {
 					break;
 				}
 			}
-			visor.shutdown();
+			superVisor.shutdown();
 		} catch (FileNotFoundException ex) {
 			logger.error("Count not find config file : "+args[0], ex);
 		} catch (IOException ex) {
