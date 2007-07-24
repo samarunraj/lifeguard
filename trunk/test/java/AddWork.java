@@ -16,10 +16,8 @@ public class AddWork {
     private static Log logger = LogFactory.getLog(AddWork.class);
 
 	public static void main( String[] args ) {
-//		final String AWSAccessKeyId = "[AWS Access Id]";
-//		final String SecretAccessKey = "[AWS Secret Key]";
-        final String AWSAccessKeyId = "0ZZXAZ980M9J5PPCFTR2";
-        final String SecretAccessKey = "4sWhM1t3obEYOr2ZkqbcwaWozM+ayVmKfRm/1rjC";
+		final String AWSAccessKeyId = "[AWS Access Id]";
+		final String SecretAccessKey = "[AWS Secret Key]";
 
 		try {
 			if (args.length < 0) {
