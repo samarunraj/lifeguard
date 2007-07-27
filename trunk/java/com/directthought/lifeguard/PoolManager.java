@@ -23,6 +23,7 @@ import com.xerox.amazonws.sqs.SQSException;
 
 import com.directthought.lifeguard.jaxb.InstanceStatus;
 import com.directthought.lifeguard.jaxb.PoolConfig.ServicePool;
+import com.directthought.lifeguard.util.QueueUtil;
 
 public class PoolManager implements Runnable {
 	private static Log logger = LogFactory.getLog(PoolManager.class);

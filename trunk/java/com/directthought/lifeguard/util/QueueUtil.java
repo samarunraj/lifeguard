@@ -1,5 +1,5 @@
 
-package com.directthought.lifeguard;
+package com.directthought.lifeguard.util;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

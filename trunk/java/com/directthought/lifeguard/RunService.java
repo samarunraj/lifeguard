@@ -21,8 +21,9 @@ public class RunService {
 	private static Log logger = LogFactory.getLog(RunService.class);
 
 	public static void main(String [] args) {
-		if (args.length != 1) {
+		if (args.length != 2) {
 			System.out.println("usage: RunService <serviceClass> <serviceconfig.xml>");
+			System.exit(-1);
 		}
 		try {
 			Properties props = new Properties();
@@ -38,6 +39,7 @@ public class RunService {
 								ServiceConfig.class, String.class, String.class, String.class});
 			AbstractBaseService svc = (AbstractBaseService)c.newInstance(new Object [] {
 								config, accessId, secretKey, queuePrefix});
+			logger.debug("loaded "+args[0]+", going to invoke it.");
 			svc.run();
 		} catch (FileNotFoundException ex) {
 			logger.error("Counld not find config file : "+args[1], ex);
