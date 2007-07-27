@@ -2,8 +2,6 @@
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import ch.inventec.Base64Coder;
-
 import com.xerox.amazonws.sqs.MessageQueue;
 import com.xerox.amazonws.sqs.Message;
 import com.xerox.amazonws.sqs.SQSUtils;
@@ -28,7 +26,7 @@ public class AddWork {
 			MessageQueue msgQueue = SQSUtils.connectToQueue("daktest-input", AWSAccessKeyId, SecretAccessKey);
 
 			String msg = "<WorkRequest xmlns=\"http://lifeguard.dotech.com/doc/2007-06-12/\"><Project>TestProj</Project><Batch>1001</Batch><ServiceName>ingestor</ServiceName><inputBucket>testbuck</inputBucket><OutputBucket>testbuck</OutputBucket><Input>sampleS3key</Input></WorkRequest>";
-			String msgId = msgQueue.sendMessage( Base64Coder.encodeString(msg) );
+			String msgId = msgQueue.sendMessage(msg);
 			logger.info( "Sent message with id " + msgId );
 		} catch ( Exception ex ) {
 			logger.error( "EXCEPTION", ex );
