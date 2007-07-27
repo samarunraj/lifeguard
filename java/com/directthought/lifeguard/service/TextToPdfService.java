@@ -30,8 +30,8 @@ import com.directthought.lifeguard.jaxb.ServiceConfig;
 public class TextToPdfService extends AbstractBaseService {
 	private static Log logger = LogFactory.getLog(TextToPdfService.class);
 
-	public TextToPdfService(ServiceConfig config) {
-		super(config);
+	public TextToPdfService(ServiceConfig config, String accessId, String secretKey, String queuePrefix) {
+		super(config, accessId, secretKey, queuePrefix);
 	}
 
 	public String getServiceName() {
