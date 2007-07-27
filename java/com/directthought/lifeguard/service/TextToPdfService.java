@@ -16,6 +16,9 @@ import org.apache.commons.logging.LogFactory;
 import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
 import com.lowagie.text.Paragraph;
+import com.lowagie.text.pdf.PdfDictionary;
+import com.lowagie.text.pdf.PdfName;
+import com.lowagie.text.pdf.PdfString;
 import com.lowagie.text.pdf.PdfWriter;
 
 import com.directthought.lifeguard.AbstractBaseService;
@@ -44,7 +47,7 @@ public class TextToPdfService extends AbstractBaseService {
 		int idx = outFileName.lastIndexOf('.');
 		outFileName = ((idx==-1)?outFileName:outFileName.substring(0, idx-1))+".pdf";
 		try {
-			PdfWriter.getInstance(document, new FileOutputStream(outFileName));
+			PdfWriter writer = PdfWriter.getInstance(document, new FileOutputStream(outFileName));
 
 			document.open();
 			BufferedReader rdr = new BufferedReader(new InputStreamReader(
@@ -56,6 +59,12 @@ public class TextToPdfService extends AbstractBaseService {
 				line = rdr.readLine();
 			}
 			document.add(para);
+
+			//
+			PdfDictionary info = writer.getInfo();
+			info.put(PdfName.AUTHOR, new PdfString("Lifeguard TextToPdf Service"));
+			info.remove(PdfName.CREATIONDATE);
+			info.remove(PdfName.MODDATE);
 		} catch (DocumentException ex) {
 			logger.error(ex.getMessage(), ex);
 		} catch (IOException ex) {

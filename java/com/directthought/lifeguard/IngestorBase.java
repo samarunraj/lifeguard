@@ -2,6 +2,7 @@
 package com.directthought.lifeguard;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.List;
 
@@ -27,6 +28,8 @@ import com.directthought.lifeguard.jaxb.Service;
 import com.directthought.lifeguard.jaxb.Workflow;
 import com.directthought.lifeguard.jaxb.WorkRequest;
 import com.directthought.lifeguard.jaxb.WorkStatus;
+import com.directthought.lifeguard.util.MD5Util;
+import com.directthought.lifeguard.util.QueueUtil;
 
 /**
  * This class implements the ingestion process. Classes that extend this need to configure
@@ -76,9 +79,11 @@ public abstract class IngestorBase {
 			for (File file : files) {
 				long startTime = System.currentTimeMillis();
 				// put file in S3 input bucket
-				String s3Key = file.getPath();
+				String s3Key = MD5Util.md5Sum(new FileInputStream(file));
 				RestS3Service s3 = new RestS3Service(new AWSCredentials(awsAccessId, awsSecretKey));
-				S3Object obj = new S3Object(new S3Bucket(inputBucket), file);
+				S3Object obj = new S3Object(new S3Bucket(inputBucket), s3Key);
+				obj.setDataInputFile(file);
+				obj.setContentLength(file.length());
 				obj = s3.putObject(inputBucket, obj);
 				// send work request message
 				WorkRequest wr = of.createWorkRequest();
@@ -99,6 +104,7 @@ public abstract class IngestorBase {
 				WorkStatus ws = MessageHelper.createWorkStatus(wr, file.getName(), startTime, endTime, "localhost");
 				message = JAXBuddy.serializeXMLString(WorkStatus.class, ws);
 				statusQueue.sendMessage(message);
+				logger.debug("ingested file : "+file.getName());
 			}
 		} catch (SQSException ex) {
 		} catch (IOException ex) {
