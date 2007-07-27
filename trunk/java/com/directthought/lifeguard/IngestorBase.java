@@ -37,6 +37,7 @@ public abstract class IngestorBase {
 
 	private String awsAccessId;
 	private String awsSecretKey;
+	private String queuePrefix;
 	private String project;
 	private String batch;
 	private String inputBucket;
@@ -47,12 +48,13 @@ public abstract class IngestorBase {
 	/**
 	 *
 	 */
-	protected IngestorBase(String awsAccessId, String awsSecretKey,
+	protected IngestorBase(String awsAccessId, String awsSecretKey, String queuePrefix,
 							String project, String batch,
 							String inputBucket, String outputBucket,
 							String statusQueueName, Workflow workflow) {
 		this.awsAccessId = awsAccessId;
 		this.awsSecretKey = awsSecretKey;
+		this.queuePrefix = queuePrefix;
 		this.project = project;
 		this.batch = batch;
 		this.inputBucket = inputBucket;
@@ -67,8 +69,8 @@ public abstract class IngestorBase {
 
 		// connect to queues
 		QueueService qs = new QueueService(awsAccessId, awsSecretKey);
-		MessageQueue statusQueue = QueueUtil.getQueueOrElse(qs, statusQueueName);
-		MessageQueue workQueue = QueueUtil.getQueueOrElse(qs, first.getWorkQueue());
+		MessageQueue statusQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+statusQueueName);
+		MessageQueue workQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+first.getWorkQueue());
 
 		try {
 			for (File file : files) {

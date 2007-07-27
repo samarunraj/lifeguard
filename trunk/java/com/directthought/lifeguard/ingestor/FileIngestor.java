@@ -17,11 +17,11 @@ import com.directthought.lifeguard.jaxb.Workflow;
 public class FileIngestor extends IngestorBase {
 	private static Log logger = LogFactory.getLog(FileIngestor.class);
 
-	protected FileIngestor(String awsAccessId, String awsSecretKey,
+	protected FileIngestor(String awsAccessId, String awsSecretKey, String queuePrefix,
 							String project, String batch,
 							String inputBucket, String outputBucket,
 							String statusQueueName, Workflow workflow) {
-		super(awsAccessId, awsSecretKey, project, batch, inputBucket, outputBucket,
+		super(awsAccessId, awsSecretKey, queuePrefix, project, batch, inputBucket, outputBucket,
 				statusQueueName, workflow);
 	}
 							 
@@ -39,6 +39,7 @@ public class FileIngestor extends IngestorBase {
 
 		FileIngestor ingestor = new FileIngestor(
 							(String)props.get("aws.accessId"), (String)props.get("aws.secretKey"),
+							(String)props.get("aws.queuePrefix"),
 							args[1], args[2], args[3], args[3],
 							"status-input", workflow);
 
