@@ -33,11 +33,13 @@ public abstract class AbstractBaseService implements Runnable {
 	private ServiceConfig config;
 	private String accessId;
 	private String secretKey;
+	private String queuePrefix;
 
-	public AbstractBaseService(ServiceConfig config, String accessId, String secretKey) {
+	public AbstractBaseService(ServiceConfig config, String accessId, String secretKey, String queuePrefix) {
 		this.config = config;
 		this.accessId = accessId;
 		this.secretKey = secretKey;
+		this.queuePrefix = queuePrefix;
 	}
 
 	public abstract String getServiceName();
@@ -58,8 +60,8 @@ public abstract class AbstractBaseService implements Runnable {
 		try {
 			// connect to queues
 			QueueService qs = new QueueService(accessId, secretKey);
-			MessageQueue statusQueue = QueueUtil.getQueueOrElse(qs, config.getPoolStatusQueue());
-			MessageQueue workQueue = QueueUtil.getQueueOrElse(qs, config.getServiceWorkQueue());
+			MessageQueue statusQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+config.getPoolStatusQueue());
+			MessageQueue workQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+config.getServiceWorkQueue());
 
 			while (true) {
 				// read work queue
@@ -113,7 +115,7 @@ public abstract class AbstractBaseService implements Runnable {
 					// send next work request
 					Step next = request.getNextStep();
 					if (next != null) {
-						MessageQueue nextQueue = QueueUtil.getQueueOrElse(qs, next.getWorkQueue());
+						MessageQueue nextQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+next.getWorkQueue());
 						String mimeType = next.getType();
 						for (MetaFile file : results) {
 							if (file.mimeType.equals(mimeType)) {

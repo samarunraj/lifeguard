@@ -6,6 +6,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.io.FileNotFoundException;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Properties;
 
 import javax.xml.bind.JAXBException;
 
@@ -23,13 +24,20 @@ public class RunService {
 		if (args.length != 1) {
 			System.out.println("usage: RunService <serviceClass> <serviceconfig.xml>");
 		}
-
 		try {
+			Properties props = new Properties();
+			props.load(RunService.class.getClassLoader().getResourceAsStream("aws.properties"));
+			String accessId = props.getProperty("aws.accessId");
+			String secretKey = props.getProperty("aws.secretKey");
+			String queuePrefix = props.getProperty("aws.queuePrefix");
+
 			ServiceConfig config = JAXBuddy.deserializeXMLStream(ServiceConfig.class,
 											new FileInputStream(args[1]));
 			Class svcClass = Class.forName(args[0]);
-			Constructor c = svcClass.getConstructor(new Class [] {ServiceConfig.class});
-			AbstractBaseService svc = (AbstractBaseService)c.newInstance(new Object [] {config});
+			Constructor c = svcClass.getConstructor(new Class [] {
+								ServiceConfig.class, String.class, String.class, String.class});
+			AbstractBaseService svc = (AbstractBaseService)c.newInstance(new Object [] {
+								config, accessId, secretKey, queuePrefix});
 			svc.run();
 		} catch (FileNotFoundException ex) {
 			logger.error("Counld not find config file : "+args[1], ex);
