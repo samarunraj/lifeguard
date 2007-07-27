@@ -1,0 +1,5 @@
+<ServiceConfig xmlns="http://lifeguard-config.dotech.com/doc/2007-06-12/">
+	<ServiceName>testSvc</ServiceName>
+	<PoolStatusQueue>poolStatusTest</PoolStatusQueue>
+	<ServiceWorkQueue>test-input</ServiceWorkQueue>
+</ServiceConfig>

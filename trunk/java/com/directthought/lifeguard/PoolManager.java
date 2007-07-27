@@ -12,8 +12,6 @@ import javax.xml.bind.JAXBException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import ch.inventec.Base64Coder;
-
 import com.xerox.amazonws.common.JAXBuddy;
 import com.xerox.amazonws.ec2.EC2Exception;
 import com.xerox.amazonws.ec2.Jec2;
@@ -76,8 +74,7 @@ public class PoolManager implements Runnable {
 	}
 
 	public void run() {
-		usrData = Base64Coder.encodeString(awsAccessId+" "+awsSecretKey+" "
-											+serverGroupName+" "+config.getServiceName());
+		usrData = awsAccessId+" "+awsSecretKey+" "+serverGroupName+" "+config.getServiceName();
 		// set pool monitor properties
 		if (this.monitor != null) {
 			this.monitor.setServiceName(config.getServiceName());
@@ -91,8 +88,8 @@ public class PoolManager implements Runnable {
 				launchInstances(min);
 			}
 			QueueService qs = new QueueService(awsAccessId, awsSecretKey);
-			MessageQueue statusQueue = getQueueOrElse(qs, serverGroupName+config.getPoolStatusQueue());
-			MessageQueue workQueue = getQueueOrElse(qs, serverGroupName+config.getServiceWorkQueue());
+			MessageQueue statusQueue = QueueUtil.getQueueOrElse(qs, serverGroupName+config.getPoolStatusQueue());
+			MessageQueue workQueue = QueueUtil.getQueueOrElse(qs, serverGroupName+config.getServiceWorkQueue());
 
 			long startBusyInterval = 0;	// used to track time pool has no idle capacity
 			long startIdleInterval = 0;	// used to track time pool has spare capacity
@@ -100,6 +97,8 @@ public class PoolManager implements Runnable {
 			// now, loop forever, checking for busy status and checking work queue size
 			logger.info("Starting PoolManager for service : "+config.getServiceName());
 			while (keepRunning) {
+				// TODO: restructure this to try 1 read that pulls RECEIVE_LOOP_LIMIT msgs
+				// all at once... more effecient. Then, loop to process those messages.
 				for (int rcvCount=0; rcvCount<RECEIVE_LOOP_LIMIT; rcvCount++) {
 					Message msg = null;
 					try {
@@ -112,8 +111,7 @@ public class PoolManager implements Runnable {
 						// parse it, then deal with it
 						try {
 							InstanceStatus status = JAXBuddy.deserializeXMLStream(InstanceStatus.class,
-										new ByteArrayInputStream(Base64Coder.decodeString(
-																msg.getMessageBody()).getBytes()));
+										new ByteArrayInputStream(msg.getMessageBody().getBytes()));
 							// assume we have a change of state, so move instance between busy/idle
 							String id = status.getInstanceId();
 							//logger.debug("received instance status "+id+" is "+status.getState());
@@ -302,19 +300,6 @@ public class PoolManager implements Runnable {
 		keepRunning = false;
 	}
 
-	private MessageQueue getQueueOrElse(QueueService qs, String queueName) {
-		MessageQueue ret = null;
-		while (ret == null) {
-			try {
-				ret = qs.getOrCreateMessageQueue(queueName);
-			} catch (SQSException ex) {
-				logger.error("Error access message queue, Retrying.", ex);
-				try { Thread.sleep(1000); } catch (InterruptedException iex) { }
-			}
-		}
-		return ret;
-	}
-
 	// Launches server(s) with user data of "accessId secretKey serverGroupName serviceName"
 	private void launchInstances(int numToLaunch) {
 		logger.debug("Starting "+numToLaunch+" server(s)");
@@ -332,7 +317,7 @@ public class PoolManager implements Runnable {
 			else {
 				Jec2 ec2 = new Jec2(awsAccessId, awsSecretKey);
 				ReservationDescription result = ec2.runInstances(config.getServiceAMI(),
-															numToLaunch, numToLaunch, null,
+															1, numToLaunch, null,
 															usrData, serverGroupName+"-keypair");
 				List<ReservationDescription.Instance> servers = result.getInstances();
 				if (servers.size() < numToLaunch) {

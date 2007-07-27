@@ -1,0 +1,8 @@
+<Workflow xmlns="http://lifeguard-ws.directthought.com/doc/2007-06-12/">
+	<Service>
+		<Name>TextToPdf</Name>
+		<WorkQueue>texttopdf-input</WorkQueue>
+		<InputType>text/plain</InputType>
+		<OutputType>application/pdf</OutputType>
+	</Service>
+</Workflow>
