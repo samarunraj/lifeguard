@@ -6,16 +6,22 @@ import java.util.GregorianCalendar;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.directthought.lifeguard.jaxb.FileRef;
+import com.directthought.lifeguard.jaxb.InstanceStatus;
 import com.directthought.lifeguard.jaxb.ObjectFactory;
 import com.directthought.lifeguard.jaxb.WorkRequest;
 import com.directthought.lifeguard.jaxb.WorkStatus;
 
 public class MessageHelper {
+	private static Log logger = LogFactory.getLog(MessageHelper.class);
+	private static ObjectFactory of = new ObjectFactory();
+	private static DatatypeFactory df = null;
 
 	public static WorkStatus createWorkStatus(WorkRequest wr,
-						String inputFile, long startTime, long endTime, String instance) throws DatatypeConfigurationException {
-		ObjectFactory of = new ObjectFactory();
+						String inputFile, long startTime, long endTime, String instance) {
 		WorkStatus ret = of.createWorkStatus();
 		ret.setProject(wr.getProject());
 		ret.setBatch(wr.getBatch());
@@ -30,10 +36,34 @@ public class MessageHelper {
 		ret.getOutputs().add(wr.getInput());
 		GregorianCalendar gc = new GregorianCalendar();
 		gc.setTimeInMillis(startTime);
-		ret.setStartTime(DatatypeFactory.newInstance().newXMLGregorianCalendar(gc));
+		ret.setStartTime(getDataFactory().newXMLGregorianCalendar(gc));
 		gc.setTimeInMillis(endTime);
-		ret.setEndTime(DatatypeFactory.newInstance().newXMLGregorianCalendar(gc));
+		ret.setEndTime(getDataFactory().newXMLGregorianCalendar(gc));
 
 		return ret;
+	}
+
+	public static InstanceStatus createInstanceStatus(String instanceId, boolean busy, long interval) {
+		InstanceStatus ret = of.createInstanceStatus();
+		ret.setInstanceId(instanceId);
+		ret.setState(busy?"busy":"idle");
+		ret.setLastInterval(getDataFactory().newDuration(interval));
+		GregorianCalendar gc = new GregorianCalendar();
+		gc.setTimeInMillis(System.currentTimeMillis());
+		ret.setTimestamp(getDataFactory().newXMLGregorianCalendar(gc));
+
+		return ret;
+	}
+
+	private static DatatypeFactory getDataFactory() {
+		if (df == null) {
+			try {
+				df = DatatypeFactory.newInstance();
+			} catch (DatatypeConfigurationException ex) {
+				logger.error("Major JVM config issue : "+ex);
+				System.exit(-1);	// need to exit. check the jvm config
+			}
+		}
+		return df;
 	}
 }

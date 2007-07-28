@@ -23,4 +23,15 @@ public class QueueUtil {
 		}
 		return ret;
 	}
+
+	public static void sendMessageForSure(MessageQueue queue, String message) {
+		while (true) {
+			try {
+				queue.sendMessage(message);
+			} catch (SQSException ex) {
+				logger.warn("Error sending message, Retrying.");
+				try { Thread.sleep(2000); } catch (InterruptedException iex) {}
+			}
+		}
+	}
 }

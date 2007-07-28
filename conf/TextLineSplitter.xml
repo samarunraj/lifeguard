@@ -2,4 +2,5 @@
 	<ServiceName>TextLineSplitter</ServiceName>
 	<PoolStatusQueue>poolStatusTextSplit</PoolStatusQueue>
 	<ServiceWorkQueue>textsplit-input</ServiceWorkQueue>
+	<WorkStatusQueue>workStatus-input</WorkStatusQueue>
 </ServiceConfig>

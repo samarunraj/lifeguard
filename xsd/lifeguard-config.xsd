@@ -44,6 +44,9 @@
 			</xs:sequence>
 		</xs:complexType>
 	</xs:element>
+
+	<!-- service config file format -->
+
 	<xs:element name="ServiceConfig">
 		<xs:complexType>
 			<xs:sequence>
@@ -56,6 +59,7 @@
 				</xs:element>
 				<xs:element name="PoolStatusQueue" type="xs:string" minOccurs="1" maxOccurs="1"/>
 				<xs:element name="ServiceWorkQueue" type="xs:string" minOccurs="1" maxOccurs="1"/>
+				<xs:element name="WorkStatusQueue" type="xs:string" minOccurs="1" maxOccurs="1"/>
 			</xs:sequence>
 		</xs:complexType>
 	</xs:element>
