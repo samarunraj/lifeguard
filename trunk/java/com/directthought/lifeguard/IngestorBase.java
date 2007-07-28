@@ -123,15 +123,15 @@ public abstract class IngestorBase {
 				wr.setInput(ref);
 				long endTime = System.currentTimeMillis();
 				String message = JAXBuddy.serializeXMLString(WorkRequest.class, wr);
-				workQueue.sendMessage(message);
+				QueueUtil.sendMessageForSure(workQueue, message);
 				// send work status message
 				WorkStatus ws = MessageHelper.createWorkStatus(wr, file.getName(), startTime, endTime, "localhost");
 				message = JAXBuddy.serializeXMLString(WorkStatus.class, ws);
-				statusQueue.sendMessage(message);
+				QueueUtil.sendMessageForSure(statusQueue, message);
 				logger.debug("ingested file : "+file.getName());
 			}
-		} catch (SQSException ex) {
 		} catch (IOException ex) {
+			logger.error(ex);
 		} catch (Exception ex) {
 			logger.error(ex);
 		}

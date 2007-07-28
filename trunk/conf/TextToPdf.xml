@@ -2,4 +2,5 @@
 	<ServiceName>TextToPdf</ServiceName>
 	<PoolStatusQueue>poolStatusTextToPdf</PoolStatusQueue>
 	<ServiceWorkQueue>texttopdf-input</ServiceWorkQueue>
+	<WorkStatusQueue>workStatus-input</WorkStatusQueue>
 </ServiceConfig>

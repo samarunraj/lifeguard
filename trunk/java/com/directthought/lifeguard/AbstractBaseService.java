@@ -5,6 +5,7 @@ import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.IOException;
 import java.io.File;
 import java.util.List;
 
@@ -25,6 +26,7 @@ import com.xerox.amazonws.sqs.MessageQueue;
 import com.xerox.amazonws.sqs.QueueService;
 import com.xerox.amazonws.sqs.SQSException;
 
+import com.directthought.lifeguard.jaxb.InstanceStatus;
 import com.directthought.lifeguard.jaxb.ServiceConfig;
 import com.directthought.lifeguard.jaxb.Step;
 import com.directthought.lifeguard.jaxb.WorkRequest;
@@ -38,6 +40,7 @@ public abstract class AbstractBaseService implements Runnable {
 	private String accessId;
 	private String secretKey;
 	private String queuePrefix;
+	private long lastTime;
 
 	public AbstractBaseService(ServiceConfig config, String accessId, String secretKey, String queuePrefix) {
 		this.config = config;
@@ -67,8 +70,10 @@ public abstract class AbstractBaseService implements Runnable {
 		try {
 			// connect to queues
 			QueueService qs = new QueueService(accessId, secretKey);
-			MessageQueue statusQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+config.getPoolStatusQueue());
+			MessageQueue poolStatusQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+config.getPoolStatusQueue());
 			MessageQueue workQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+config.getServiceWorkQueue());
+			MessageQueue workStatusQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+config.getWorkStatusQueue());
+			lastTime = System.currentTimeMillis();
 
 			while (true) {
 				try {
@@ -84,6 +89,7 @@ public abstract class AbstractBaseService implements Runnable {
 						try { Thread.sleep(2000); } catch (InterruptedException ex) {}
 						continue;
 					}
+					sendPoolStatus(poolStatusQueue, true);
 					// parse work
 					try {
 						long startTime = System.currentTimeMillis();
@@ -141,16 +147,17 @@ public abstract class AbstractBaseService implements Runnable {
 							}
 							request.setNextStep(next.getNextStep());
 							String message = JAXBuddy.serializeXMLString(WorkRequest.class, request);
-							nextQueue.sendMessage(message);
+							QueueUtil.sendMessageForSure(nextQueue, message);
 						}
 						// send status
 						String message = JAXBuddy.serializeXMLString(WorkStatus.class, ws);
-						statusQueue.sendMessage(message);
+						QueueUtil.sendMessageForSure(workStatusQueue, message);
 					// here's where we catch stuff that will be fatal for processing the message
 					} catch (JAXBException ex) {
 						logger.error("Problem parsing work request!", ex);
 					}
 					workQueue.deleteMessage(msg);
+					sendPoolStatus(poolStatusQueue, false);
 				// here's where we catch stuff that will cause us to re-try this later (keep it in Q)
 				} catch (S3ServiceException ex) {
 					logger.error("Problem with S3!", ex);
@@ -158,6 +165,20 @@ public abstract class AbstractBaseService implements Runnable {
 			}
 		} catch (Throwable t) {
 			logger.error("Something unexpected happened in the "+getServiceName()+" service", t);
+		}
+	}
+
+	private void sendPoolStatus(MessageQueue queue, boolean busy) {
+		try {
+			long interval = System.currentTimeMillis() - lastTime;
+			InstanceStatus status = MessageHelper.createInstanceStatus("id", busy, interval);
+			String message = JAXBuddy.serializeXMLString(InstanceStatus.class, status);
+			QueueUtil.sendMessageForSure(queue, message);
+			lastTime = System.currentTimeMillis();
+		} catch (JAXBException ex) {
+			logger.error("Problem serializing instance status!?", ex);
+		} catch (IOException ex) {
+			logger.error("Problem serializing instance status!?", ex);
 		}
 	}
 }

@@ -28,7 +28,7 @@ import com.directthought.lifeguard.util.QueueUtil;
 public class PoolManager implements Runnable {
 	private static Log logger = LogFactory.getLog(PoolManager.class);
 	private static boolean NO_LAUNCH = true;	// used for testing... don't really launch servers
-	private static int RECEIVE_LOOP_LIMIT = 10;
+	private static int RECEIVE_COUNT = 20;
 
 	// configuration items
 	private String awsAccessId;
@@ -98,15 +98,13 @@ public class PoolManager implements Runnable {
 			// now, loop forever, checking for busy status and checking work queue size
 			logger.info("Starting PoolManager for service : "+config.getServiceName());
 			while (keepRunning) {
-				// TODO: restructure this to try 1 read that pulls RECEIVE_LOOP_LIMIT msgs
-				// all at once... more effecient. Then, loop to process those messages.
-				for (int rcvCount=0; rcvCount<RECEIVE_LOOP_LIMIT; rcvCount++) {
-					Message msg = null;
-					try {
-						msg = statusQueue.receiveMessage();
-					} catch (SQSException ex) {
-						logger.error("Error reading message, Retrying.", ex);
-					}
+				Message [] msgs = null;
+				try {
+					msgs = statusQueue.receiveMessages(RECEIVE_COUNT);
+				} catch (SQSException ex) {
+					logger.error("Error reading message, Retrying.", ex);
+				}
+				for (Message msg : msgs) {
 					if (!keepRunning) break;	// fast exit
 					if (msg != null) {	// process status message
 						// parse it, then deal with it
