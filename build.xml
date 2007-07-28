@@ -55,10 +55,6 @@
 		<javac srcdir="${lifeguard.generated}" includes="**/*.java" destdir="${lifeguard.classes}" debug="on">
 			<classpath refid="lifeguard.compile.classpath" />
 		</javac>
-		<copy todir="${lifeguard.classes}">
-			<fileset dir="${lifeguard.generated}" includes="**/*.ser"/>
-			<fileset dir="${lifeguard.generated}" includes="**/*.properties"/>
-		</copy>
 		<javac destdir="${lifeguard.classes}" debug="on">
 			<src path="${lifeguard.src}" />
 			<classpath refid="lifeguard.compile.classpath" />
@@ -74,7 +70,12 @@
     </target>
 
 	<target name="jar" depends="compile">
-        <jar destfile="${lifeguard.jar.file}" basedir="${lifeguard.classes}" excludes="**/*.xml"/>
+        <jar destfile="${lifeguard.jar.file}">
+			<fileset dir="${lifeguard.classes}">
+				<exclude name="**/*.xml"/>
+				<exclude name="**/aws.properties"/>
+			</fileset>
+		</jar>
 	</target>
 
 	<target name="javadoc" depends="init">
@@ -116,6 +117,28 @@
 				<pathelement location="${lifeguard.classes}"/>
 			</classpath>
 			<arg line="conf/poolconfig.xml"/>
+			<jvmarg value="-Djava.util.logging.config.file=conf/logging.properties"/>
+		</java>
+	</target>
+
+	<target name="run.textsplit" depends="compile">
+		<java fork="true" classname="com.directthought.lifeguard.RunService">
+			<classpath>
+				<path refid="lifeguard.compile.classpath"/>
+				<pathelement location="${lifeguard.classes}"/>
+			</classpath>
+			<arg line="com.directthought.lifeguard.service.TextLineSplitterService conf/TextLineSplitter.xml"/>
+			<jvmarg value="-Djava.util.logging.config.file=conf/logging.properties"/>
+		</java>
+	</target>
+
+	<target name="run.texttopdf" depends="compile">
+		<java fork="true" classname="com.directthought.lifeguard.RunService">
+			<classpath>
+				<path refid="lifeguard.compile.classpath"/>
+				<pathelement location="${lifeguard.classes}"/>
+			</classpath>
+			<arg line="com.directthought.lifeguard.service.TextToPdfService conf/TextToPdf.xml"/>
 			<jvmarg value="-Djava.util.logging.config.file=conf/logging.properties"/>
 		</java>
 	</target>
