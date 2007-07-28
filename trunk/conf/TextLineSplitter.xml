@@ -1,0 +1,5 @@
+<ServiceConfig xmlns="http://lifeguard-config.directthought.com/doc/2007-06-12/">
+	<ServiceName>TextLineSplitter</ServiceName>
+	<PoolStatusQueue>poolStatusTextSplit</PoolStatusQueue>
+	<ServiceWorkQueue>textsplit-input</ServiceWorkQueue>
+</ServiceConfig>

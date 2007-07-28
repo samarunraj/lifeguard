@@ -1,4 +1,4 @@
-<PoolConfig xmlns="http://lifeguard-config.dotech.com/doc/2007-06-12/">
+<PoolConfig xmlns="http://lifeguard-config.directthought.com/doc/2007-06-12/">
 	<ServicePool>
 		<ServiceName>testSvc</ServiceName>
 		<ServiceAMI>ami-20b65349</ServiceAMI>
@@ -14,10 +14,23 @@
 	</ServicePool>
 <!--
 	<ServicePool>
-		<ServiceName>testSvc2</ServiceName>
+		<ServiceName>TextLineSplitter</ServiceName>
 		<ServiceAMI>ami-20b65349</ServiceAMI>
-		<PoolStatusQueue>poolStatusTest2</PoolStatusQueue>
-		<ServiceWorkQueue>test2-input</ServiceWorkQueue>
+		<PoolStatusQueue>poolStatusTextSplit</PoolStatusQueue>
+		<ServiceWorkQueue>textsplit-input</ServiceWorkQueue>
+		<RampUpInterval>2</RampUpInterval>
+		<RampUpDelay>60</RampUpDelay>
+		<RampDownInterval>1</RampDownInterval>
+		<RampDownDelay>120</RampDownDelay>
+		<MinSize>0</MinSize>
+		<MaxSize>2</MaxSize>
+		<QueueSizeFactor>10</QueueSizeFactor>
+	</ServicePool>
+	<ServicePool>
+		<ServiceName>TextToPdf</ServiceName>
+		<ServiceAMI>ami-20b65349</ServiceAMI>
+		<PoolStatusQueue>poolStatusTextToPdf</PoolStatusQueue>
+		<ServiceWorkQueue>texttopdf-input</ServiceWorkQueue>
 		<RampUpInterval>2</RampUpInterval>
 		<RampUpDelay>60</RampUpDelay>
 		<RampDownInterval>1</RampDownInterval>
