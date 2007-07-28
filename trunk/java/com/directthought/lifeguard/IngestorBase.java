@@ -25,6 +25,7 @@ import com.xerox.amazonws.sqs.SQSException;
 import com.directthought.lifeguard.jaxb.FileRef;
 import com.directthought.lifeguard.jaxb.ObjectFactory;
 import com.directthought.lifeguard.jaxb.Service;
+import com.directthought.lifeguard.jaxb.Step;
 import com.directthought.lifeguard.jaxb.Workflow;
 import com.directthought.lifeguard.jaxb.WorkRequest;
 import com.directthought.lifeguard.jaxb.WorkStatus;
@@ -68,14 +69,43 @@ public abstract class IngestorBase {
 
 	public void ingest(List<File> files) {
 		ObjectFactory of = new ObjectFactory();
-		Service first = workflow.getServices().get(0);
 
 		// connect to queues
 		QueueService qs = new QueueService(awsAccessId, awsSecretKey);
 		MessageQueue statusQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+statusQueueName);
-		MessageQueue workQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+first.getWorkQueue());
+		MessageQueue workQueue = QueueUtil.getQueueOrElse(qs,
+										queuePrefix+workflow.getServices().get(0).getWorkQueue());
 
 		try {
+			// build common parts of work request
+			WorkRequest wr = of.createWorkRequest();
+			wr.setProject(project);
+			wr.setBatch(batch);
+			wr.setServiceName("ingestor");
+			wr.setInputBucket(inputBucket);
+			wr.setOutputBucket(outputBucket);
+			// build pipeline steps
+			Step step = of.createStep();
+			boolean first = true;
+			for (Service svc : workflow.getServices()) {
+				if (!first) {
+					if (wr.getNextStep() == null) {	// make sure top level is set on request
+						wr.setNextStep(step);
+					}
+					else {
+						Step tmp = of.createStep();
+						step.setNextStep(tmp);
+						step = tmp;
+					}
+					step.setWorkQueue(svc.getWorkQueue());
+					step.setType(svc.getInputType());
+				}
+				else {
+					first = false;
+				}
+			}
+			step.setNextStep(null);	// null out last step, filled in for next loop iteration
+
 			for (File file : files) {
 				long startTime = System.currentTimeMillis();
 				// put file in S3 input bucket
@@ -86,12 +116,6 @@ public abstract class IngestorBase {
 				obj.setContentLength(file.length());
 				obj = s3.putObject(inputBucket, obj);
 				// send work request message
-				WorkRequest wr = of.createWorkRequest();
-				wr.setProject(project);
-				wr.setBatch(batch);
-				wr.setServiceName("ingestor");
-				wr.setInputBucket(inputBucket);
-				wr.setOutputBucket(outputBucket);
 				FileRef ref = of.createFileRef();
 				ref.setKey(s3Key);
 				ref.setType("image/tiff");

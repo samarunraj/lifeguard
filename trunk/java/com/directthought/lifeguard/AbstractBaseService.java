@@ -46,8 +46,6 @@ public abstract class AbstractBaseService implements Runnable {
 		this.queuePrefix = queuePrefix;
 	}
 
-	public abstract String getServiceName();
-
 	public abstract List<MetaFile> executeService(File inputFile, WorkRequest request);
 
 	public class MetaFile {
@@ -59,6 +57,10 @@ public abstract class AbstractBaseService implements Runnable {
 			this.file = file;
 			this.mimeType = mimeType;
 		}
+	}
+
+	public String getServiceName() {
+		return config.getServiceName();
 	}
 
 	public void run() {
@@ -103,6 +105,7 @@ public abstract class AbstractBaseService implements Runnable {
 							}
 							count = iStr.read(buf);
 						}
+						oStr.close();
 						// call executeService()
 						logger.debug("About to run service");
 						List<MetaFile> results = executeService(inputFile, request);
@@ -116,6 +119,7 @@ public abstract class AbstractBaseService implements Runnable {
 							obj.setDataInputFile(file.file);
 							obj.setContentLength(file.file.length());
 							obj = s3.putObject(outBucket, obj);
+							obj.closeDataInputStream();
 						}
 						// after all transferred, delete them locally
 						for (MetaFile file : results) {
