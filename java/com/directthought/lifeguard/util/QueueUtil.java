@@ -28,6 +28,7 @@ public class QueueUtil {
 		while (true) {
 			try {
 				queue.sendMessage(message);
+				return;
 			} catch (SQSException ex) {
 				logger.warn("Error sending message, Retrying.");
 				try { Thread.sleep(2000); } catch (InterruptedException iex) {}
