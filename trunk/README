@@ -1,0 +1,24 @@
+lifeguard 0.1
+
+http://code.google.com/p/lifeguard
+
+This is a simple API to access Amazon's SQS and EC2 web services. It uses the QUERY interface and patterns the methods after those available from Amazon in their SOAP client for these services. This code is thread-safe and works very reliably to the best of my knowledge. I've been using it on a system where sending messages in SQS is critical and we manage pools of servers in EC2.
+
+Distribution files;
+README         - this file
+LICENSE.txt    - full version of the Apache 2.0 license
+lifeguard.jar  - the classes for this release
+conf/          - property files
+lib/           - supporting libraries
+apidocs/       - JavaDoc for this release
+ingest.sh      - script to invoke the FileIngestor
+poolManager.sh - script to run the pool manager
+
+Be sure to edit the conf/aws.properties file to set your access id, secret key and queue prefix. The queue prefix is used to differentiate server groups (many can run in one account).
+
+Test Services
+TextLineSplitter - this service takes text as input and breaks words on separate lines
+TextToPdf - this service uses iText to create a simple pdf version of the input text file
+
+
+Change history for this version;

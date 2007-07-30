@@ -28,6 +28,7 @@ public class FileIngestor extends IngestorBase {
 	public static void main(String [] args) throws Exception {
 		if (args.length < 6) {
 			logger.error("Usage: FileIngestor <aws.props> <project> <batch> <bucket> <workflow.xml> file1 ...");
+			System.exit(0);
 		}
 		// load aws props
 		Properties props = new Properties();

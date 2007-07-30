@@ -103,7 +103,9 @@
 			<fileset file="${lifeguard.jar.file}"/>
 			<fileset file="README"/>
 			<fileset file="LICENSE.txt"/>
-            <fileset dir="${lifeguard.conf}" includes="**/*"/>
+			<fileset file="*.sh"/>
+            <fileset dir="${lifeguard}" includes="conf/*"/>
+            <fileset dir="${lifeguard}" includes="lib/*"/>
 			<fileset dir="${lifeguard.build}">
 				<include name="apidocs/**/*"/>
 			</fileset>
