@@ -10,12 +10,22 @@
 		<property name="queuePrefix" value="${aws.queuePrefix}"/>
 		<property name="poolMonitor"><ref bean="monitor"/></property>
 	</bean>
-	<!--
 	<bean id="monitor" class="com.directthought.lifeguard.StderrPoolMonitor" singleton="false"/>
-	-->
+	<!-- This is used when not launching real server, but to simulate state from servers
 	<bean id="monitor" class="SimulateServers" singleton="false">
 		<property name="accessId" value="${aws.accessId}"/>
 		<property name="secretKey" value="${aws.secretKey}"/>
 		<property name="queuePrefix" value="${aws.queuePrefix}"/>
+	</bean>
+	-->
+	<bean id="statuslogger" class="com.directthought.lifeguard.StatusLogger">
+		<property name="accessId" value="${aws.accessId}"/>
+		<property name="secretKey" value="${aws.secretKey}"/>
+		<property name="queuePrefix" value="${aws.queuePrefix}"/>
+		<property name="statusQueueName" value="workStatus-input"/>
+		<property name="statusSaver"><ref bean="statussaver"/></property>
+	</bean>
+	<bean id="statussaver" class="com.directthought.lifeguard.status.CSVLogger" singleton="false">
+		<property name="outputFile" value="workstatus.csv"/>
 	</bean>
 </beans>

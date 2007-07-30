@@ -34,6 +34,11 @@ public class RunManager {
 		cfg.postProcessBeanFactory(factory);
 
 		try {
+			// start status logger
+			StatusLogger statLog = (StatusLogger)factory.getBean("statuslogger");
+			statLog.run();
+
+			// start pool manager(s)
 			PoolConfig config = JAXBuddy.deserializeXMLStream(PoolConfig.class,
 											new FileInputStream(args[0]));
 			PoolSupervisor superVisor = (PoolSupervisor)factory.getBean("supervisor");
