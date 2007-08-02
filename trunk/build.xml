@@ -1,4 +1,4 @@
-<?xml version="1.0" standalone="yes"?>
+<?xml ersion="1.0" standalone="yes"?>
 
 <project name="lifeguard" basedir="." default="compile">
     <property name="lifeguard" value="${basedir}"/>
@@ -140,7 +140,8 @@
 				<path refid="lifeguard.compile.classpath"/>
 				<pathelement location="${lifeguard.classes}"/>
 			</classpath>
-			<arg line="com.directthought.lifeguard.service.TextToPdfService conf/TextToPdf.xml"/>
+			<arg line="com.directthought.lifeguard.service.TextToPdfService conf/TextToPdf.xml blah  blah dak"/>
+
 			<jvmarg value="-Djava.util.logging.config.file=conf/logging.properties"/>
 		</java>
 	</target>
