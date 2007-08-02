@@ -12,6 +12,7 @@ import com.xerox.amazonws.sqs.SQSException;
 import com.xerox.amazonws.sqs.SQSUtils;
 
 import com.directthought.lifeguard.PoolMonitor;
+import com.directthought.lifeguard.MessageHelper;
 
 /**
  * 
@@ -147,10 +148,10 @@ public class SimulateServers implements PoolMonitor {
 				try {
 					long newTime = System.currentTimeMillis();
 					int duration = (int)((newTime - lastSend) / 1000);	// duration in seconds
-					String msg = "<InstanceStatus xmlns=\"http://lifeguard.dotech.com/doc/2007-06-12/\"><InstanceId>"+
+					String msg = "<InstanceStatus xmlns=\"http://lifeguard.directthought.com/doc/2007-06-12/\"><InstanceId>"+
 						id+"</InstanceId><State>"+state+"</State><LastInterval>PT"
 						+duration+"S</LastInterval><Timestamp></Timestamp></InstanceStatus>";
-					String msgId = statusQueue.sendMessage( Base64Coder.encodeString(msg) );
+					String msgId = statusQueue.sendMessage(msg);
 					lastSend = newTime;
 					break;
 				} catch (SQSException ex) {
