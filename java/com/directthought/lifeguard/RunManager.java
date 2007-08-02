@@ -36,7 +36,8 @@ public class RunManager {
 		try {
 			// start status logger
 			StatusLogger statLog = (StatusLogger)factory.getBean("statuslogger");
-			statLog.run();
+			Thread statusThread = new Thread(statLog);
+			statusThread.start();
 
 			// start pool manager(s)
 			PoolConfig config = JAXBuddy.deserializeXMLStream(PoolConfig.class,
@@ -55,6 +56,7 @@ public class RunManager {
 				}
 			}
 			superVisor.shutdown();
+			statLog.shutdown();
 		} catch (FileNotFoundException ex) {
 			logger.error("Count not find config file : "+args[0], ex);
 		} catch (IOException ex) {

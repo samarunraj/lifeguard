@@ -68,7 +68,9 @@ public class StatusLogger implements Runnable {
 						WorkStatus status = JAXBuddy.deserializeXMLStream(WorkStatus.class,
 									new ByteArrayInputStream(msg.getMessageBody().getBytes()));
 						if (!keepRunning) break;	// fast exit
-						saver.workStatus(status); 
+						if (saver != null) {
+							saver.workStatus(status); 
+						}
 					} catch (JAXBException ex) {
 						logger.error("Problem parsing instance status!", ex);
 					}

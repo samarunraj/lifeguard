@@ -125,7 +125,7 @@ public abstract class IngestorBase {
 				String message = JAXBuddy.serializeXMLString(WorkRequest.class, wr);
 				QueueUtil.sendMessageForSure(workQueue, message);
 				// send work status message
-				WorkStatus ws = MessageHelper.createWorkStatus(wr, file.getName(), startTime, endTime, "localhost");
+				WorkStatus ws = MessageHelper.createIngestStatus(wr, file.getName(), startTime, endTime, "localhost");
 				message = JAXBuddy.serializeXMLString(WorkStatus.class, ws);
 				QueueUtil.sendMessageForSure(statusQueue, message);
 				logger.debug("ingested file : "+file.getName());
