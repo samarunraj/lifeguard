@@ -1,12 +1,16 @@
 
 package com.directthought.lifeguard;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.File;
+import java.net.SocketTimeoutException;
+import java.net.URL;
 import java.util.List;
 
 import javax.xml.bind.JAXBException;
@@ -36,10 +40,12 @@ import com.directthought.lifeguard.util.QueueUtil;
 
 public abstract class AbstractBaseService implements Runnable {
 	private static Log logger = LogFactory.getLog(AbstractBaseService.class);
+	private static final long MIN_STATUS_INTERVAL = 60000;
 	private ServiceConfig config;
 	private String accessId;
 	private String secretKey;
 	private String queuePrefix;
+	private String instanceId = "unknown";
 	private long lastTime;
 
 	public AbstractBaseService(ServiceConfig config, String accessId, String secretKey, String queuePrefix) {
@@ -47,6 +53,24 @@ public abstract class AbstractBaseService implements Runnable {
 		this.accessId = accessId;
 		this.secretKey = secretKey;
 		this.queuePrefix = queuePrefix;
+		int iter = 0;
+		while (true) {
+			try {
+				URL url = new URL("http://169.254.169.254/1.0/meta-data/instance-id");
+				instanceId = new BufferedReader(new InputStreamReader(url.openStream())).readLine();
+				break;
+			} catch (IOException ex) {
+				if (iter == 1) {
+					logger.debug("Problem getting instance data, retries exhausted...");
+					break;
+				}
+				else {
+					logger.debug("Problem getting instance data, retrying...");
+					try { Thread.sleep((iter+1)*1000); } catch (InterruptedException iex) {}
+				}
+			}
+			iter++;
+		}
 	}
 
 	public abstract List<MetaFile> executeService(File inputFile, WorkRequest request);
@@ -70,9 +94,12 @@ public abstract class AbstractBaseService implements Runnable {
 		try {
 			// connect to queues
 			QueueService qs = new QueueService(accessId, secretKey);
-			MessageQueue poolStatusQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+config.getPoolStatusQueue());
-			MessageQueue workQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+config.getServiceWorkQueue());
-			MessageQueue workStatusQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+config.getWorkStatusQueue());
+			MessageQueue poolStatusQueue =
+						QueueUtil.getQueueOrElse(qs, queuePrefix+config.getPoolStatusQueue());
+			MessageQueue workQueue =
+						QueueUtil.getQueueOrElse(qs, queuePrefix+config.getServiceWorkQueue());
+			MessageQueue workStatusQueue =
+						QueueUtil.getQueueOrElse(qs, queuePrefix+config.getWorkStatusQueue());
 			lastTime = System.currentTimeMillis();
 
 			while (true) {
@@ -133,7 +160,7 @@ public abstract class AbstractBaseService implements Runnable {
 						}
 						long endTime = System.currentTimeMillis();
 						// create status
-						WorkStatus ws = MessageHelper.createWorkStatus(request, inputFile.getName(), startTime, endTime, "localhost");
+						WorkStatus ws = MessageHelper.createServiceStatus(request, results, startTime, endTime, instanceId);
 						// send next work request
 						Step next = request.getNextStep();
 						if (next != null) {
@@ -151,14 +178,19 @@ public abstract class AbstractBaseService implements Runnable {
 						}
 						// send status
 						String message = JAXBuddy.serializeXMLString(WorkStatus.class, ws);
+						logger.debug("sending works status message : "+message);
 						QueueUtil.sendMessageForSure(workStatusQueue, message);
+
 					// here's where we catch stuff that will be fatal for processing the message
 					} catch (JAXBException ex) {
 						logger.error("Problem parsing work request!", ex);
 					}
 					workQueue.deleteMessage(msg);
 					sendPoolStatus(poolStatusQueue, false);
-				// here's where we catch stuff that will cause us to re-try this later (keep it in Q)
+
+				// here's where we catch stuff that will cause a re-try of this later (keep it in Q)
+				} catch (SocketTimeoutException ex) {
+					logger.error("Problem with communication with S3!", ex);
 				} catch (S3ServiceException ex) {
 					logger.error("Problem with S3!", ex);
 				}
@@ -168,12 +200,27 @@ public abstract class AbstractBaseService implements Runnable {
 		}
 	}
 
+	private long lastBusySend = 0;
+	private long lastIdleSend = 0;
+	// This method will send sparse status. It will just send the most recent status if no
+	// status has been sent in the last minute.
 	private void sendPoolStatus(MessageQueue queue, boolean busy) {
 		try {
-			long interval = System.currentTimeMillis() - lastTime;
-			InstanceStatus status = MessageHelper.createInstanceStatus("id", busy, interval);
-			String message = JAXBuddy.serializeXMLString(InstanceStatus.class, status);
-			QueueUtil.sendMessageForSure(queue, message);
+			long now = System.currentTimeMillis();
+			if ((busy && ((now-lastBusySend) > MIN_STATUS_INTERVAL)) ||
+				(!busy && ((now-lastIdleSend) > MIN_STATUS_INTERVAL))) { 
+
+				long interval = now - lastTime;
+				InstanceStatus status = MessageHelper.createInstanceStatus(instanceId, busy, interval);
+				String message = JAXBuddy.serializeXMLString(InstanceStatus.class, status);
+				QueueUtil.sendMessageForSure(queue, message);
+				if (busy) {
+					lastBusySend = now;
+				}
+				else {
+					lastIdleSend = now;
+				}
+			}
 			lastTime = System.currentTimeMillis();
 		} catch (JAXBException ex) {
 			logger.error("Problem serializing instance status!?", ex);

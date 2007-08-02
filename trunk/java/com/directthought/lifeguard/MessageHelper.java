@@ -2,6 +2,7 @@
 package com.directthought.lifeguard;
 
 import java.util.GregorianCalendar;
+import java.util.List;
 
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
@@ -9,6 +10,7 @@ import javax.xml.datatype.DatatypeFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.directthought.lifeguard.AbstractBaseService.MetaFile;
 import com.directthought.lifeguard.jaxb.FileRef;
 import com.directthought.lifeguard.jaxb.InstanceStatus;
 import com.directthought.lifeguard.jaxb.ObjectFactory;
@@ -20,7 +22,7 @@ public class MessageHelper {
 	private static ObjectFactory of = new ObjectFactory();
 	private static DatatypeFactory df = null;
 
-	public static WorkStatus createWorkStatus(WorkRequest wr,
+	public static WorkStatus createIngestStatus(WorkRequest wr,
 						String inputFile, long startTime, long endTime, String instance) {
 		WorkStatus ret = of.createWorkStatus();
 		ret.setProject(wr.getProject());
@@ -34,6 +36,30 @@ public class MessageHelper {
 		ret.setInput(ref);
 		ret.setOutputBucket(wr.getOutputBucket());
 		ret.getOutputs().add(wr.getInput());
+		GregorianCalendar gc = new GregorianCalendar();
+		gc.setTimeInMillis(startTime);
+		ret.setStartTime(getDataFactory().newXMLGregorianCalendar(gc));
+		gc.setTimeInMillis(endTime);
+		ret.setEndTime(getDataFactory().newXMLGregorianCalendar(gc));
+
+		return ret;
+	}
+
+	public static WorkStatus createServiceStatus(WorkRequest wr,
+						List<MetaFile> outFiles, long startTime, long endTime, String instance) {
+		WorkStatus ret = of.createWorkStatus();
+		ret.setProject(wr.getProject());
+		ret.setBatch(wr.getBatch());
+		ret.setServiceName(wr.getServiceName());
+		ret.setInputBucket(wr.getInputBucket());
+		ret.setInput(wr.getInput());
+		for (MetaFile file : outFiles) {
+			FileRef ref = of.createFileRef();
+			ref.setKey(file.key);
+			ref.setType(file.mimeType);
+			ref.setLocation("S3");
+			ret.getOutputs().add(ref);
+		}
 		GregorianCalendar gc = new GregorianCalendar();
 		gc.setTimeInMillis(startTime);
 		ret.setStartTime(getDataFactory().newXMLGregorianCalendar(gc));

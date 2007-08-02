@@ -6,7 +6,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.io.FileNotFoundException;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Properties;
 
 import javax.xml.bind.JAXBException;
 
@@ -21,19 +20,17 @@ public class RunService {
 	private static Log logger = LogFactory.getLog(RunService.class);
 
 	public static void main(String [] args) {
-		if (args.length != 2) {
-			System.out.println("usage: RunService <serviceClass> <serviceconfig.xml>");
+		if (args.length < 5) {
+			System.out.println("usage: RunService <serviceClass> <serviceconfig.xml> <accessId> <secretKey> <queuePrefix>");
 			System.exit(-1);
 		}
 		try {
-			Properties props = new Properties();
-			props.load(RunService.class.getClassLoader().getResourceAsStream("aws.properties"));
-			String accessId = props.getProperty("aws.accessId");
-			String secretKey = props.getProperty("aws.secretKey");
-			String queuePrefix = props.getProperty("aws.queuePrefix");
-
 			ServiceConfig config = JAXBuddy.deserializeXMLStream(ServiceConfig.class,
 											new FileInputStream(args[1]));
+			String accessId = args[2];
+			String secretKey = args[3];
+			String queuePrefix = args[4];
+
 			Class svcClass = Class.forName(args[0]);
 			Constructor c = svcClass.getConstructor(new Class [] {
 								ServiceConfig.class, String.class, String.class, String.class});

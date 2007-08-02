@@ -4,6 +4,7 @@ package com.directthought.lifeguard;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -27,8 +28,9 @@ import com.directthought.lifeguard.util.QueueUtil;
 
 public class PoolManager implements Runnable {
 	private static Log logger = LogFactory.getLog(PoolManager.class);
-	private static boolean NO_LAUNCH = true;	// used for testing... don't really launch servers
-	private static int RECEIVE_COUNT = 20;
+	private static final boolean NO_LAUNCH = false;	// used for testing... don't really launch servers
+	private static final int RECEIVE_COUNT = 20;
+	private static final int IDLE_BUMP_INTERVAL = 120000;	// 2 minutes
 
 	// configuration items
 	private String awsAccessId;
@@ -38,9 +40,7 @@ public class PoolManager implements Runnable {
 	private PoolMonitor monitor;
 
 	// runtime data - stuff to save when saving state
-	// TODO: convert to single list. Use instance load value to determine idleness
-	private List<Instance> busyInstances;
-	private List<Instance> idleInstances;
+	private List<Instance> instances;
 
 	// transient data - not important to save
 	private String usrData;
@@ -50,8 +50,7 @@ public class PoolManager implements Runnable {
 	 * This constructs a queue manager.
 	 */
 	public PoolManager() {
-		busyInstances = new ArrayList<Instance>();
-		idleInstances = new ArrayList<Instance>();
+		instances = new ArrayList<Instance>();
 	}
 
 	public void setAccessId(String id) {
@@ -114,68 +113,31 @@ public class PoolManager implements Runnable {
 							// assume we have a change of state, so move instance between busy/idle
 							String id = status.getInstanceId();
 							//logger.debug("received instance status "+id+" is "+status.getState());
-							if (status.getState().equals("busy")) {
-								int idx = idleInstances.indexOf(new Instance(id));
-								if (idx > -1) {
-									Instance i = idleInstances.get(idx);
-									if (idleInstances.remove(i)) {
-										i.lastIdleInterval =
-												status.getLastInterval().getTimeInMillis(new Date(0));
-										i.lastReportTime = System.currentTimeMillis();
-										i.updateLoad();
-										busyInstances.add(i);
-										if (this.monitor != null) {
-											monitor.instanceBusy(id);
-										}
+							int idx = instances.indexOf(new Instance(id));
+							if (idx > -1) {
+								Instance i = instances.get(idx);
+								long interval =
+										status.getLastInterval().getTimeInMillis(new Date(0));
+								if (status.getState().equals("busy")) {
+									i.lastIdleInterval = interval;
+									if (this.monitor != null) {
+										monitor.instanceBusy(id);
 									}
 								}
-								else { // it might be out of order, check idle list
-									idx = busyInstances.indexOf(new Instance(id));
-									if (idx > -1) {
-										Instance i = busyInstances.get(idx);
-										i.lastBusyInterval =
-												status.getLastInterval().getTimeInMillis(new Date(0));
-										i.lastReportTime = System.currentTimeMillis();
-										i.updateLoad();
-									}
-									else {
-										logger.debug("ignoring busy message for instance not known");
+								else if (status.getState().equals("idle")) {
+									i.lastBusyInterval = interval;
+									if (this.monitor != null) {
+										monitor.instanceIdle(id);
 									}
 								}
-							}
-							else if (status.getState().equals("idle")) {
-								int idx = busyInstances.indexOf(new Instance(id));
-								if (idx > -1) {
-									Instance i = busyInstances.get(idx);
-									if (busyInstances.remove(i)) {
-										i.lastBusyInterval =
-												status.getLastInterval().getTimeInMillis(new Date(0));
-										i.lastReportTime = System.currentTimeMillis();
-										i.updateLoad();
-										idleInstances.add(i);
-										if (this.monitor != null) {
-											monitor.instanceIdle(id);
-										}
-									}
+								else {
 								}
-								else { // it might be out of order, check busy list
-									idx = idleInstances.indexOf(new Instance(id));
-									if (idx > -1) {
-										Instance i = idleInstances.get(idx);
-										i.lastIdleInterval =
-												status.getLastInterval().getTimeInMillis(new Date(0));
-										i.lastReportTime = System.currentTimeMillis();
-										i.updateLoad();
-									}
-									else {
-										logger.debug("ignoring idle message for instance not known");
-									}
-								}
+								i.lastReportTime = System.currentTimeMillis();
+								i.updateLoad();
 							}
 							else {
-								logger.debug("couldn't parse status message: "+msg.getMessageBody());
+								logger.debug("ignoring message for instance not known");
 							}
-
 						} catch (JAXBException ex) {
 							logger.error("Problem parsing instance status!", ex);
 						}
@@ -187,12 +149,12 @@ public class PoolManager implements Runnable {
 						break;
 					}
 				}
-				// for idle servers, bump idle interval...
-				for (Instance i : idleInstances) {
+				// for servers that haven't reported recently, bump idle interval...
+				for (Instance i : instances) {
 					// if more than a minute (arbitrarily) has gone by without a report,
 					// increase the lastBusyInterval, and recalc the loadEstimate
-					if (i.lastReportTime < (System.currentTimeMillis()-60000)) {
-						i.lastIdleInterval += 60000;
+					if (i.lastReportTime < (System.currentTimeMillis()-IDLE_BUMP_INTERVAL)) {
+						i.lastIdleInterval += IDLE_BUMP_INTERVAL;
 						i.lastReportTime = System.currentTimeMillis();
 						i.updateLoad();
 					}
@@ -200,13 +162,10 @@ public class PoolManager implements Runnable {
 
 				// calculate pool load average
 				int sum = 0;
-				for (Instance i : idleInstances) {
+				for (Instance i : instances) {
 					sum += i.loadEstimate;
 				}
-				for (Instance i : busyInstances) {
-					sum += i.loadEstimate;
-				}
-				int denom = idleInstances.size()+busyInstances.size();
+				int denom = instances.size();
 				int poolLoad = (denom==0)?0:(sum / denom);
 
 				// now, see if were full busy, or somewhat idle
@@ -231,29 +190,31 @@ public class PoolManager implements Runnable {
 								(int)(System.currentTimeMillis() - startIdleInterval) / 1000;
 					int busyInterval = (startBusyInterval==0)?0:
 								(int)(System.currentTimeMillis() - startBusyInterval) / 1000;
-					int totalServers = idleInstances.size() + busyInstances.size();
+					int totalServers = instances.size();
 					logger.debug("queue:"+queueDepth+
-								" idle:"+idleInstances.size()+" busy:"+busyInstances.size()+
+								" servers:"+totalServers+
 								" load:"+poolLoad+
 								" ii:"+idleInterval+" bi:"+busyInterval);
 					if (idleInterval >= config.getRampDownDelay()) {	// idle interval has elapsed
 						if (totalServers > config.getMinSize()) {
 							// terminate as many servers (up to the interval)
-							int numToKill = Math.min(config.getRampDownInterval(), idleInstances.size());
+							int numToKill = Math.min(config.getRampDownInterval(), instances.size());
 							// ensure we don't kill too many servers (not below min)
 							if ((totalServers-numToKill) < config.getMinSize()) {
 								numToKill -= config.getMinSize() - (totalServers-numToKill);
 							}
 							// if there are still messages in work queue, leave an idle server
 							// (this helps prevent cyclic launching and terminating of servers)
-							if (queueDepth > 1 && (numToKill == idleInstances.size())) {
+							if (queueDepth > 1 && (numToKill == instances.size())) {
 								numToKill --;
 							}
 
 							if (numToKill > 0) {
+								// grab the instances with the lowest load estimate
+								Collections.sort(instances);
 								Instance [] ids = new Instance[numToKill];
 								for (int i=0; i<numToKill; i++) {
-									ids[i] = idleInstances.get(i);
+									ids[i] = instances.get(i);
 								}
 								terminateInstances(ids);
 							}
@@ -266,7 +227,6 @@ public class PoolManager implements Runnable {
 							int sizeFactor = config.getQueueSizeFactor();
 							// use queueDepth to adjust the numToRun
 							numToRun = numToRun * (int)((queueDepth / (float)(sizeFactor<1?1:sizeFactor))+1);
-							logger.debug("------------------- interval elapsed!!! numtorun="+numToRun);
 							if ((totalServers+numToRun) > config.getMaxSize()) {
 								numToRun -= (totalServers+numToRun) - config.getMaxSize();
 							}
@@ -278,6 +238,8 @@ public class PoolManager implements Runnable {
 					// this test will get servers started if there is work and zero servers.
 					if (totalServers == 0 && queueDepth > 0 && config.getMaxSize() > 0) {
 						launchInstances(config.getRampUpInterval());
+						startIdleInterval = 0;	// reset
+						startBusyInterval = 0;	// reset
 					}
 				} catch (SQSException ex) {
 					logger.error("Error getting queue depth, Retrying.", ex);
@@ -287,9 +249,8 @@ public class PoolManager implements Runnable {
 			}
 			// when loop exits, shut down all instances
 			logger.info("Shutting down PoolManager for service : "+config.getServiceName());
-			idleInstances.addAll(busyInstances);
-			busyInstances.clear();
-			terminateInstances(idleInstances.toArray(new Instance [] {}));
+			terminateInstances(instances.toArray(new Instance [] {}));
+			instances.clear();
 		} catch (Throwable t) {
 			logger.error("something went horribly wrong in the pool manager main loop!", t);
 		}
@@ -307,7 +268,7 @@ public class PoolManager implements Runnable {
 				for (int i=0; i<numToLaunch; i++) {
 					String fakeId = "i-"+(""+System.currentTimeMillis()+i).substring(6);
 					logger.debug("not launching, using fake instance id : "+fakeId);
-					idleInstances.add(new Instance(fakeId));
+					instances.add(new Instance(fakeId));
 					if (this.monitor != null) {
 						monitor.instanceStarted(fakeId);
 					}
@@ -324,7 +285,7 @@ public class PoolManager implements Runnable {
 									+servers.size()+" instead of "+numToLaunch+")");
 				}
 				for (ReservationDescription.Instance s : servers) {
-					idleInstances.add(new Instance(s.getInstanceId()));
+					instances.add(new Instance(s.getInstanceId()));
 					if (this.monitor != null) {
 						monitor.instanceStarted(s.getInstanceId());
 					}
@@ -348,7 +309,7 @@ public class PoolManager implements Runnable {
 				ec2.terminateInstances(ids);
 			}
 			for (Instance i : instances) {
-				idleInstances.remove(i);
+				this.instances.remove(i);
 				if (this.monitor != null) {
 					monitor.instanceTerminated(i.id);
 				}
@@ -358,7 +319,7 @@ public class PoolManager implements Runnable {
 		}
 	}
 
-	private class Instance {
+	private class Instance implements Comparable {
 		String id;
 		int loadEstimate;
 		long lastIdleInterval;	// last reported interval of idle-ness
@@ -381,6 +342,10 @@ public class PoolManager implements Runnable {
 
 		public boolean equals(Object o) {
 			return (id.equals(((Instance)o).id));
+		}
+
+		public int compareTo(Object i) {
+			return (loadEstimate - ((Instance)i).loadEstimate);
 		}
 	}
 }
