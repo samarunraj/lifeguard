@@ -1,4 +1,4 @@
-<?xml ersion="1.0" standalone="yes"?>
+<?xml version="1.0" standalone="yes"?>
 
 <project name="lifeguard" basedir="." default="compile">
     <property name="lifeguard" value="${basedir}"/>
