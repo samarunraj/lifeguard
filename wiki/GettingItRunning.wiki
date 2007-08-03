@@ -19,3 +19,5 @@ There is an AMI (ami-30e40159) which implements the TextToPDF service. While you
 ec2run ami-30e40159 -d "<accessId> <secretKey> <queuePrefix> <serviceName>" -k your-keypair
 }}}
 For serviceName, you can supply "TextToPDF".
+
+Once you login, type "su - lifeguard" since that is the user the service runs under. What you see in the /home/lifeguard directory is basically the lifeguard 0.1 release with a modified run_service.sh script. The script passes the user data into the executable.
