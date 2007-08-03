@@ -1,3 +1,4 @@
+#labels Featured
 This page describes how to run the various pieces of the application.
 
 Lifeguard is packaged with all dependency libraries, which is why the zip file is so large.
