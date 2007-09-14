@@ -4,6 +4,7 @@ package com.directthought.lifeguard;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
 
@@ -34,14 +35,16 @@ public class RunManager {
 		cfg.postProcessBeanFactory(factory);
 
 		try {
+			// Load pool configuration first - fail early if it isn't available
+			PoolConfig config = JAXBuddy.deserializeXMLStream(PoolConfig.class,
+											new FileInputStream(args[0]));
+
 			// start status logger
 			StatusLogger statLog = (StatusLogger)factory.getBean("statuslogger");
 			Thread statusThread = new Thread(statLog);
 			statusThread.start();
 
 			// start pool manager(s)
-			PoolConfig config = JAXBuddy.deserializeXMLStream(PoolConfig.class,
-											new FileInputStream(args[0]));
 			PoolSupervisor superVisor = (PoolSupervisor)factory.getBean("supervisor");
 			superVisor.setPoolConfig(config);
 			superVisor.setBeanFactory(factory);
@@ -58,7 +61,7 @@ public class RunManager {
 			superVisor.shutdown();
 			statLog.shutdown();
 		} catch (FileNotFoundException ex) {
-			logger.error("Count not find config file : "+args[0], ex);
+			logger.error("Could not find config file : "+args[0], ex);
 		} catch (IOException ex) {
 			logger.error("Error reading config file", ex);
 		} catch (JAXBException ex) {

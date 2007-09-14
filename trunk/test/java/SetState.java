@@ -1,4 +1,6 @@
 
+import java.util.Properties;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -16,22 +18,24 @@ public class SetState {
     private static Log logger = LogFactory.getLog(SetState.class);
 
 	public static void main( String[] args ) {
-		final String AWSAccessKeyId = "[AWS Access Id]";
-		final String SecretAccessKey = "[AWS Secret Key]";
-
 		try {
-			if (args.length < 2) {
-				logger.error("usage: SetState <instanceId> <state> <duration>");
+			if (args.length < 4) {
+				logger.error("usage: SetState <statusqueue> <instanceId> <state> <duration>");
 			}
-			String instanceId = args[0];
-			String state = args[1];
-			String duration = args[2];
+			String statusQueue = args[0];
+			String instanceId = args[1];
+			String state = args[2];
+			String duration = args[3];
+
+			Properties props = new Properties();
+			props.load(SetState.class.getClassloader().getResourceAsStream("aws.properties"));
 
 			// Create the message queue object
-			MessageQueue msgQueue = SQSUtils.connectToQueue("poolStatusTest", AWSAccessKeyId, SecretAccessKey);
+			MessageQueue msgQueue = SQSUtils.connectToQueue(statusQueue,
+					props.getProperty("aws.accessId"), props.getProperty("aws.secretKey"));
 
-			String msg = "<InstanceStatus xmlns=\"http://lifeguard.dotech.com/doc/2007-06-12/\"><InstanceId>"+instanceId+"</InstanceId><State>"+state+"</State><LastInterval>P"+duration+"M</LastInterval><Timestamp></Timestamp></InstanceStatus>";
-			String msgId = msgQueue.sendMessage( Base64Coder.encodeString(msg) );
+			String msg = "<InstanceStatus xmlns=\"http://lifeguard.directthought.com/doc/2007-06-12/\"><InstanceId>"+instanceId+"</InstanceId><State>"+state+"</State><LastInterval>P"+duration+"M</LastInterval><Timestamp></Timestamp></InstanceStatus>";
+			String msgId = msgQueue.sendMessage(msg);
 			logger.info( "Sent message with id " + msgId );
 		} catch ( Exception ex ) {
 			logger.error( "EXCEPTION", ex );

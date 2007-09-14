@@ -9,6 +9,11 @@
 		<property name="secretKey" value="${aws.secretKey}"/>
 		<property name="queuePrefix" value="${aws.queuePrefix}"/>
 		<property name="poolMonitor"><ref bean="monitor"/></property>
+		<property name="receiveCount" value="20"/>
+		<property name="idleBumpInterval" value="120000"/>
+		<property name="noLaunch" value="false"/>
+		<property name="keypairName" value="${aws.queuePrefix}-keypair"/>
+		<property name="minimumLifetimeInMinutes" value="55"/>
 	</bean>
 	<bean id="monitor" class="com.directthought.lifeguard.StderrPoolMonitor" singleton="false"/>
 	<!-- This is used when not launching real server, but to simulate state from servers
