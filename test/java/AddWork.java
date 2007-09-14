@@ -1,4 +1,6 @@
 
+import java.util.Properties;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -14,16 +16,18 @@ public class AddWork {
     private static Log logger = LogFactory.getLog(AddWork.class);
 
 	public static void main( String[] args ) {
-		final String AWSAccessKeyId = "[AWS Access Id]";
-		final String SecretAccessKey = "[AWS Secret Key]";
-
 		try {
-			if (args.length < 0) {
-				logger.error("usage: AddWork");
+			if (args.length < 1) {
+				logger.error("usage: AddWork <workqueue>");
+				System.exit(-1);
 			}
 
+			Properties props = new Properties();
+			props.load(AddWork.class.getClassloader().getResourceAsStream("aws.properties"));
+
 			// Create the message queue object
-			MessageQueue msgQueue = SQSUtils.connectToQueue("daktest-input", AWSAccessKeyId, SecretAccessKey);
+			MessageQueue msgQueue = SQSUtils.connectToQueue(args[0].trim(),
+					props.getProperty("aws.accessId"), props.getProperty("aws.secretKey"));
 
 			String msg = "<WorkRequest xmlns=\"http://lifeguard.dotech.com/doc/2007-06-12/\"><Project>TestProj</Project><Batch>1001</Batch><ServiceName>ingestor</ServiceName><inputBucket>testbuck</inputBucket><OutputBucket>testbuck</OutputBucket><Input>sampleS3key</Input></WorkRequest>";
 			String msgId = msgQueue.sendMessage(msg);

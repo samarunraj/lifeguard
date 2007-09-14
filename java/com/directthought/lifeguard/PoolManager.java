@@ -28,19 +28,21 @@ import com.directthought.lifeguard.util.QueueUtil;
 
 public class PoolManager implements Runnable {
 	private static Log logger = LogFactory.getLog(PoolManager.class);
-	private static final boolean NO_LAUNCH = false;	// used for testing... don't really launch servers
-	private static final int RECEIVE_COUNT = 20;
-	private static final int IDLE_BUMP_INTERVAL = 120000;	// 2 minutes
 
 	// configuration items
-	private String awsAccessId;
-	private String awsSecretKey;
-	private String serverGroupName;
-	private ServicePool config;
-	private PoolMonitor monitor;
+	protected String awsAccessId;
+	protected String awsSecretKey;
+	protected String queuePrefix;
+	protected ServicePool config;
+	protected PoolMonitor monitor;
+	protected int receiveCount = 20;
+	protected int idleBumpInterval = 120000;
+	protected int minLifetimeInMins = 0;
+	protected String keypairName = "unknown-keypair";
+	protected boolean noLaunch = false;
 
 	// runtime data - stuff to save when saving state
-	private List<Instance> instances;
+	protected List<Instance> instances;
 
 	// transient data - not important to save
 	private String usrData;
@@ -62,7 +64,7 @@ public class PoolManager implements Runnable {
 	}
 
 	public void setQueuePrefix(String prefix) {
-		serverGroupName = prefix;
+		queuePrefix = prefix;
 	}
 
 	public void setPoolConfig(ServicePool config) {
@@ -73,8 +75,31 @@ public class PoolManager implements Runnable {
 		this.monitor = monitor;
 	}
 
+	public void setReceiveCount(int receiveCount) {
+		this.receiveCount = receiveCount;
+	}
+
+	public void setIdleBumpInterval(int idleBumpInterval) {
+		this.idleBumpInterval = idleBumpInterval;
+	}
+
+	public void setMinimumLifetimeInMinutes(int minLifetimeInMins) {
+		this.minLifetimeInMins = minLifetimeInMins;
+	}
+
+	public void setNoLaunch(boolean noLaunch) {
+		this.noLaunch = noLaunch;
+	}
+
+	public void setKeypairName(String keypairName) {
+		this.keypairName = keypairName;
+	}
+
+	protected String getUserData() {
+		return awsAccessId+" "+awsSecretKey+" "+queuePrefix+" "+config.getServiceName();
+	}
+
 	public void run() {
-		usrData = awsAccessId+" "+awsSecretKey+" "+serverGroupName+" "+config.getServiceName();
 		// set pool monitor properties
 		if (this.monitor != null) {
 			this.monitor.setServiceName(config.getServiceName());
@@ -82,14 +107,17 @@ public class PoolManager implements Runnable {
 			this.monitor.setWorkQueue(config.getServiceWorkQueue());
 		}
 		try {
+			// Find existing servers.
+			listInstances();
+
 			// fire up min servers first. They take a least 2 minutes to start up
 			int min = config.getMinSize();
-			if (min > 0) {
-				launchInstances(min);
+			if (min > instances.size()) {
+				launchInstances(min - instances.size());
 			}
 			QueueService qs = new QueueService(awsAccessId, awsSecretKey);
-			MessageQueue statusQueue = QueueUtil.getQueueOrElse(qs, serverGroupName+config.getPoolStatusQueue());
-			MessageQueue workQueue = QueueUtil.getQueueOrElse(qs, serverGroupName+config.getServiceWorkQueue());
+			MessageQueue statusQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+config.getPoolStatusQueue());
+			MessageQueue workQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+config.getServiceWorkQueue());
 
 			long startBusyInterval = 0;	// used to track time pool has no idle capacity
 			long startIdleInterval = 0;	// used to track time pool has spare capacity
@@ -99,7 +127,7 @@ public class PoolManager implements Runnable {
 			while (keepRunning) {
 				Message [] msgs = null;
 				try {
-					msgs = statusQueue.receiveMessages(RECEIVE_COUNT);
+					msgs = statusQueue.receiveMessages(receiveCount);
 				} catch (SQSException ex) {
 					logger.error("Error reading message, Retrying.", ex);
 				}
@@ -153,8 +181,8 @@ public class PoolManager implements Runnable {
 				for (Instance i : instances) {
 					// if more than a minute (arbitrarily) has gone by without a report,
 					// increase the lastBusyInterval, and recalc the loadEstimate
-					if (i.lastReportTime < (System.currentTimeMillis()-IDLE_BUMP_INTERVAL)) {
-						i.lastIdleInterval += IDLE_BUMP_INTERVAL;
+					if (i.lastReportTime < (System.currentTimeMillis()-idleBumpInterval)) {
+						i.lastIdleInterval += idleBumpInterval;
 						i.lastReportTime = System.currentTimeMillis();
 						i.updateLoad();
 					}
@@ -205,7 +233,7 @@ public class PoolManager implements Runnable {
 							}
 							// if there are still messages in work queue, leave an idle server
 							// (this helps prevent cyclic launching and terminating of servers)
-							if (queueDepth > 1 && (numToKill == instances.size())) {
+							if (queueDepth >= 1 && (numToKill == instances.size())) {
 								numToKill --;
 							}
 
@@ -260,14 +288,37 @@ public class PoolManager implements Runnable {
 		keepRunning = false;
 	}
 
-	// Launches server(s) with user data of "accessId secretKey serverGroupName serviceName"
+	// Finds any EC2 instances based on the appropriate AMI that are already running
+	private void listInstances() throws EC2Exception {
+		Jec2 ec2 = new Jec2(awsAccessId, awsSecretKey);
+		List<String> params = new ArrayList<String>();
+		List<ReservationDescription> reservations = ec2.describeInstances(params);
+
+		for (ReservationDescription rd : reservations) {
+			for (ReservationDescription.Instance i : rd.getInstances()) {
+				if (i != null && i.getImageId().equals(config.getServiceAMI())
+				    && (i.getState().equals("pending") || i.getState().equals("running"))) {
+					logger.info("Found " + i.getState() + " instance: " + i.getInstanceId());
+					instances.add(new Instance(i.getInstanceId()));
+					if (this.monitor != null) {
+						monitor.instanceStarted(i.getInstanceId());
+					}
+				}
+			}
+		}
+	}
+
+	// Launches server(s) with user data of "accessId secretKey queuePrefix serviceName"
 	private void launchInstances(int numToLaunch) {
 		logger.debug("Starting "+numToLaunch+" server(s)");
 		try {
-			if (NO_LAUNCH) {
+			if (noLaunch) {
 				for (int i=0; i<numToLaunch; i++) {
-					String fakeId = "i-"+(""+System.currentTimeMillis()+i).substring(6);
-					logger.debug("not launching, using fake instance id : "+fakeId);
+					String counter = "0000000" + (instances.size()+1);
+					counter = counter.substring(counter.length() - 8);
+					String fakeId = "i-" + counter;
+					logger.debug("Not launching, using fake instance id : "+fakeId);
+					logger.debug("User Data for fake service: "+getUserData());
 					instances.add(new Instance(fakeId));
 					if (this.monitor != null) {
 						monitor.instanceStarted(fakeId);
@@ -278,7 +329,7 @@ public class PoolManager implements Runnable {
 				Jec2 ec2 = new Jec2(awsAccessId, awsSecretKey);
 				ReservationDescription result = ec2.runInstances(config.getServiceAMI(),
 															1, numToLaunch, null,
-															usrData, serverGroupName+"-keypair");
+															usrData, keypairName);
 				List<ReservationDescription.Instance> servers = result.getInstances();
 				if (servers.size() < numToLaunch) {
 					logger.warn("Failed to lanuch desired number of servers. ("
@@ -299,23 +350,38 @@ public class PoolManager implements Runnable {
 	private void terminateInstances(Instance [] instances) {
 		logger.debug("Stopping server(s)");
 		try {
-			if (!NO_LAUNCH) {
+			if (!noLaunch) {
 				String [] ids = new String[instances.length];
 				int x=0;
 				for (Instance i : instances) {
+					// Don't stop instances before minLifetimeInMins
+					if (!i.isMinLifetimeElapsed()) {
+						logger.debug("Keeping instance "+i.id+
+							" alive until it has lived for "+
+							minLifetimeInMins+" mins");
+						continue;
+					}
 					ids[x++] = i.id;
 				}
+				if (x == 0) return;
 				Jec2 ec2 = new Jec2(awsAccessId, awsSecretKey);
 				ec2.terminateInstances(ids);
 			}
 			for (Instance i : instances) {
+				// Don't stop instances before minLifetimeInMins
+				if (!i.isMinLifetimeElapsed()) {
+					logger.debug("Keeping instance "+i.id+
+						" alive until it has lived for "+
+						minLifetimeInMins+" mins");
+					continue;
+				}
 				this.instances.remove(i);
 				if (this.monitor != null) {
 					monitor.instanceTerminated(i.id);
 				}
 			}
 		} catch (EC2Exception ex) {
-			logger.warn("Failed to terminate instance. Will retry");
+			logger.warn("Failed to terminate instance. Will retry", ex);
 		}
 	}
 
@@ -325,6 +391,8 @@ public class PoolManager implements Runnable {
 		long lastIdleInterval;	// last reported interval of idle-ness
 		long lastBusyInterval;	// last reported interval of busy-ness
 		long lastReportTime;
+		long startupTime;		// the time this instances was first started
+		boolean bumped = false;
 
 		Instance(String id) {
 			this.id = id;
@@ -332,6 +400,7 @@ public class PoolManager implements Runnable {
 			lastIdleInterval = 0;
 			lastBusyInterval = 0;
 			lastReportTime = System.currentTimeMillis();
+			startupTime = System.currentTimeMillis();
 		}
 
 
@@ -345,7 +414,26 @@ public class PoolManager implements Runnable {
 		}
 
 		public int compareTo(Object i) {
-			return (loadEstimate - ((Instance)i).loadEstimate);
+			Instance otherInstance = (Instance)i;
+
+			// Compare the elapsed lifetime status. If the status differs, instances
+			// that have lived beyond the minimum lifetime will be sorted earlier.
+			if (isMinLifetimeElapsed() != otherInstance.isMinLifetimeElapsed()) {
+				if (isMinLifetimeElapsed()) {
+					// This instance has lived long enough, the other hasn't
+					return -1;
+				} else {
+					// The other instance has lived long enough, this one hasn't
+					return 1;
+				}
+			}
+
+			return (loadEstimate - otherInstance.loadEstimate);
+		}
+
+		public boolean isMinLifetimeElapsed() {
+			long runTimeSecs = (System.currentTimeMillis() - startupTime) / 1000;
+			return (runTimeSecs > (minLifetimeInMins * 60)); 
 		}
 	}
 }

@@ -22,8 +22,7 @@
 
 	<taskdef name="xjc" classname="com.sun.tools.xjc.XJCTask">
 		<classpath>
-			<fileset dir="${lifeguard.lib}" includes="**/jaxb-xjc.jar"/>
-			<fileset dir="${lifeguard.lib}" includes="**/jaxb*.jar"/>
+			<fileset dir="${lifeguard.lib}" includes="**/*.jar"/>
 		</classpath>
 	</taskdef>
 	
@@ -182,7 +181,7 @@
 				<path refid="lifeguard.compile.classpath"/>
 				<pathelement location="${lifeguard.classes}"/>
 			</classpath>
-			<arg line="${id} ${state} ${duration}"/>
+			<arg line="${statusqueue} ${id} ${state} ${duration}"/>
 		</java>
 	</target>
 
@@ -192,6 +191,7 @@
 				<path refid="lifeguard.compile.classpath"/>
 				<pathelement location="${lifeguard.classes}"/>
 			</classpath>
+			<arg line="${workqueue}"/>
 		</java>
 	</target>
 </project>
