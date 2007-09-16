@@ -45,7 +45,6 @@ public class PoolManager implements Runnable {
 	protected List<Instance> instances;
 
 	// transient data - not important to save
-	private String usrData;
 	private boolean keepRunning = true;
 
 	/**
@@ -329,7 +328,7 @@ public class PoolManager implements Runnable {
 				Jec2 ec2 = new Jec2(awsAccessId, awsSecretKey);
 				ReservationDescription result = ec2.runInstances(config.getServiceAMI(),
 															1, numToLaunch, null,
-															usrData, keypairName);
+															getUserData(), keypairName);
 				List<ReservationDescription.Instance> servers = result.getInstances();
 				if (servers.size() < numToLaunch) {
 					logger.warn("Failed to lanuch desired number of servers. ("
@@ -392,7 +391,6 @@ public class PoolManager implements Runnable {
 		long lastBusyInterval;	// last reported interval of busy-ness
 		long lastReportTime;
 		long startupTime;		// the time this instances was first started
-		boolean bumped = false;
 
 		Instance(String id) {
 			this.id = id;
