@@ -47,6 +47,7 @@ public abstract class AbstractBaseService implements Runnable {
 	private String queuePrefix;
 	private String instanceId = "unknown";
 	private long lastTime;
+	protected int secondsToSleep = 4;
 
 	public AbstractBaseService(ServiceConfig config, String accessId, String secretKey, String queuePrefix) {
 		this.config = config;
@@ -60,7 +61,7 @@ public abstract class AbstractBaseService implements Runnable {
 				instanceId = new BufferedReader(new InputStreamReader(url.openStream())).readLine();
 				break;
 			} catch (IOException ex) {
-				if (iter == 1) {
+				if (iter == 5) {
 					logger.debug("Problem getting instance data, retries exhausted...");
 					break;
 				}
@@ -90,6 +91,10 @@ public abstract class AbstractBaseService implements Runnable {
 		return config.getServiceName();
 	}
 
+	public void setSecondsToSleep(int secs) {
+		this.secondsToSleep = secs;
+	}
+
 	public void run() {
 		try {
 			// connect to queues
@@ -113,7 +118,7 @@ public abstract class AbstractBaseService implements Runnable {
 					}
 					if (msg == null) {
 						logger.debug("no message, sleeping...");
-						try { Thread.sleep(2000); } catch (InterruptedException ex) {}
+						try { Thread.sleep(secondsToSleep*1000); } catch (InterruptedException ex) {}
 						continue;
 					}
 					sendPoolStatus(poolStatusQueue, true);

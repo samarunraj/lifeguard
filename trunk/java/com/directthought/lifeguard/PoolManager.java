@@ -40,6 +40,7 @@ public class PoolManager implements Runnable {
 	protected int minLifetimeInMins = 0;
 	protected String keypairName = "unknown-keypair";
 	protected boolean noLaunch = false;
+	protected int secondsToSleep = 4;
 
 	// runtime data - stuff to save when saving state
 	protected List<Instance> instances;
@@ -92,6 +93,10 @@ public class PoolManager implements Runnable {
 
 	public void setKeypairName(String keypairName) {
 		this.keypairName = keypairName;
+	}
+
+	public void setSecondsToSleep(int secs) {
+		this.secondsToSleep = secs;
 	}
 
 	protected String getUserData() {
@@ -272,7 +277,7 @@ public class PoolManager implements Runnable {
 					logger.error("Error getting queue depth, Retrying.", ex);
 				}
 //				logger.info("loop bottom");
-				try { Thread.sleep(4000); } catch (InterruptedException iex) { }
+				try { Thread.sleep(secondsToSleep*1000); } catch (InterruptedException iex) { }
 			}
 			// when loop exits, shut down all instances
 			logger.info("Shutting down PoolManager for service : "+config.getServiceName());
