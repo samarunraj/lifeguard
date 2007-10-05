@@ -23,7 +23,7 @@ public class CSVLogger implements StatusSaver {
 			boolean writeHeader = !f.exists();
 			outStr = new BufferedOutputStream(new FileOutputStream(f, true));	// append=yes
 			if (writeHeader) {
-				String header = "Project, Batch, ServiceName, InputBucket, InputKey, InputType"+
+				String header = "Project, Batch, ServiceName, InputBucket, InputKey, InputType, "+
 								"OutputBucket, OutputKey, OutputType, StartTime, EndTime, InstanceId\n";
 				outStr.write(header.getBytes());
 			}
