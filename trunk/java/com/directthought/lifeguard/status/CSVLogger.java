@@ -49,7 +49,7 @@ public class CSVLogger implements StatusSaver {
 		line.append(",");
 		line.append(ws.getOutputBucket());
 		line.append(",");
-		ref = ws.getOutputs().get(0);	// only logging the first file... 
+		ref = ws.getOutputs().isEmpty()?new FileRef():ws.getOutputs().get(0);	// only logging the first file... 
 		line.append(ref.getKey());
 		line.append(",");
 		line.append(ref.getType());
