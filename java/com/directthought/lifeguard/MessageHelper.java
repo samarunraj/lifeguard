@@ -65,6 +65,7 @@ public class MessageHelper {
 		ret.setStartTime(getDataFactory().newXMLGregorianCalendar(gc));
 		gc.setTimeInMillis(endTime);
 		ret.setEndTime(getDataFactory().newXMLGregorianCalendar(gc));
+		ret.setInstanceId(instance);
 
 		return ret;
 	}
