@@ -127,6 +127,8 @@ public abstract class AbstractBaseService implements Runnable {
 						long startTime = System.currentTimeMillis();
 						WorkRequest request = JAXBuddy.deserializeXMLStream(WorkRequest.class,
 										new ByteArrayInputStream(msg.getMessageBody().getBytes()));
+						// change service name to that of the current service.
+						request.setServiceName(getServiceName());
 						// pull file from S3
 						RestS3Service s3 = new RestS3Service(new AWSCredentials(accessId, secretKey));
 						S3Bucket inBucket = new S3Bucket(request.getInputBucket());
