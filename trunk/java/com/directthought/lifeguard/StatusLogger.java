@@ -76,6 +76,7 @@ public class StatusLogger implements Runnable {
 					}
 					workStatusQueue.deleteMessage(msg);
 				}
+				try { Thread.sleep(5000); } catch (InterruptedException iex) { }
 			}
 		} catch (Throwable t) {
 			logger.error("Something unexpected happened in the status logger", t);
