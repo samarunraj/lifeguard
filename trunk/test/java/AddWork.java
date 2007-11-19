@@ -23,7 +23,7 @@ public class AddWork {
 			}
 
 			Properties props = new Properties();
-			props.load(AddWork.class.getClassloader().getResourceAsStream("aws.properties"));
+			props.load(AddWork.class.getClassLoader().getResourceAsStream("aws.properties"));
 
 			// Create the message queue object
 			MessageQueue msgQueue = SQSUtils.connectToQueue(args[0].trim(),

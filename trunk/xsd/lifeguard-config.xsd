@@ -38,6 +38,11 @@
 							<!-- are in the queue and servers are busy for RampUpDelay,       -->
 							<!-- 4 servers will be started (2 * (20/10)) = 4                  -->
 							<xs:element name="QueueSizeFactor" type="xs:int" minOccurs="1" maxOccurs="1"/>
+							<!-- Enable, if the pool manager should look for existing instances -->
+							<!-- of the ServiceAMI at startup. Note: this could be a problem if -->
+							<!-- you run multiple server groups in one AWS account or if you    -->
+							<!-- use one AMI for multiple pools.                                -->
+							<xs:element name="FindExistingServers" type="xs:boolean" minOccurs="1" maxOccurs="1"/>
 						</xs:sequence>
 					</xs:complexType>
 				</xs:element>

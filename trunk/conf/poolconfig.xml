@@ -12,6 +12,7 @@
 		<MinSize>0</MinSize>
 		<MaxSize>20</MaxSize>
 		<QueueSizeFactor>10</QueueSizeFactor>
+		<FindExistingServers>false</FindExistingServers>
 	</ServicePool>
 	<ServicePool>
 		<ServiceName>TextLineSplitter</ServiceName>
@@ -25,6 +26,7 @@
 		<MinSize>0</MinSize>
 		<MaxSize>2</MaxSize>
 		<QueueSizeFactor>10</QueueSizeFactor>
+		<FindExistingServers>false</FindExistingServers>
 	</ServicePool>
 -->
 	<ServicePool>
@@ -39,5 +41,6 @@
 		<MinSize>0</MinSize>
 		<MaxSize>10</MaxSize>
 		<QueueSizeFactor>50</QueueSizeFactor>
+		<FindExistingServers>false</FindExistingServers>
 	</ServicePool>
 </PoolConfig>

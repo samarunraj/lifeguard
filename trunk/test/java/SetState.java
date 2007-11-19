@@ -28,7 +28,7 @@ public class SetState {
 			String duration = args[3];
 
 			Properties props = new Properties();
-			props.load(SetState.class.getClassloader().getResourceAsStream("aws.properties"));
+			props.load(SetState.class.getClassLoader().getResourceAsStream("aws.properties"));
 
 			// Create the message queue object
 			MessageQueue msgQueue = SQSUtils.connectToQueue(statusQueue,
