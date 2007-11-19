@@ -74,7 +74,7 @@ public abstract class AbstractBaseService implements Runnable {
 		}
 	}
 
-	public abstract List<MetaFile> executeService(File inputFile, WorkRequest request);
+	public abstract List<MetaFile> executeService(File inputFile, WorkRequest request) throws ServiceException;
 
 	public class MetaFile {
 		public File file;
@@ -123,9 +123,10 @@ public abstract class AbstractBaseService implements Runnable {
 					}
 					sendPoolStatus(poolStatusQueue, true);
 					// parse work
+					WorkRequest request = null;
+					long startTime = System.currentTimeMillis();
 					try {
-						long startTime = System.currentTimeMillis();
-						WorkRequest request = JAXBuddy.deserializeXMLStream(WorkRequest.class,
+						request = JAXBuddy.deserializeXMLStream(WorkRequest.class,
 										new ByteArrayInputStream(msg.getMessageBody().getBytes()));
 						// change service name to that of the current service.
 						request.setServiceName(getServiceName());
@@ -148,7 +149,7 @@ public abstract class AbstractBaseService implements Runnable {
 						oStr.close();
 						// call executeService()
 						logger.debug("About to run service");
-						List<MetaFile> results = executeService(inputFile, request);
+							List<MetaFile> results = executeService(inputFile, request);
 						inputFile.delete();
 						logger.debug("service produced "+results.size()+" results");
 						// send results to S3
@@ -167,11 +168,13 @@ public abstract class AbstractBaseService implements Runnable {
 						}
 						long endTime = System.currentTimeMillis();
 						// create status
-						WorkStatus ws = MessageHelper.createServiceStatus(request, results, startTime, endTime, instanceId);
+						WorkStatus ws = MessageHelper.createServiceStatus(request, results,
+																startTime, endTime, instanceId);
 						// send next work request
 						Step next = request.getNextStep();
 						if (next != null) {
-							MessageQueue nextQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+next.getWorkQueue());
+							MessageQueue nextQueue = QueueUtil.getQueueOrElse(qs,
+																queuePrefix+next.getWorkQueue());
 							String mimeType = next.getType();
 							for (MetaFile file : results) {
 								if (file.mimeType.equals(mimeType)) {
@@ -191,6 +194,14 @@ public abstract class AbstractBaseService implements Runnable {
 					// here's where we catch stuff that will be fatal for processing the message
 					} catch (JAXBException ex) {
 						logger.error("Problem parsing work request!", ex);
+					} catch (ServiceException se) {
+						logger.error("Problem executing service!", se);
+						long endTime = System.currentTimeMillis();
+						WorkStatus ws = MessageHelper.createServiceStatus(request, null,
+															startTime, endTime, instanceId);
+						ws.setFailureMessage(se.getMessage());
+						String message = JAXBuddy.serializeXMLString(WorkStatus.class, ws);
+						QueueUtil.sendMessageForSure(workStatusQueue, message);
 					}
 					workQueue.deleteMessage(msg);
 					sendPoolStatus(poolStatusQueue, false);
