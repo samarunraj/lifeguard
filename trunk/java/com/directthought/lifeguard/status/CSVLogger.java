@@ -24,7 +24,7 @@ public class CSVLogger implements StatusSaver {
 			outStr = new BufferedOutputStream(new FileOutputStream(f, true));	// append=yes
 			if (writeHeader) {
 				String header = "Project, Batch, ServiceName, InputBucket, InputKey, InputType, "+
-								"OutputBucket, OutputKey, OutputType, StartTime, EndTime, InstanceId\n";
+								"OutputBucket, OutputKey, OutputType, StartTime, EndTime, InstanceId, ServiceFailure\n";
 				outStr.write(header.getBytes());
 			}
 		} catch (IOException ex) {
@@ -59,6 +59,11 @@ public class CSVLogger implements StatusSaver {
 		line.append(ws.getEndTime().toString());
 		line.append(",");
 		line.append(ws.getInstanceId());
+		line.append(",");
+		String failureMsg = ws.getFailureMessage();
+		if (failureMsg != null) {
+			line.append(failureMsg);
+		}
 		line.append("\n");
 		try {
 			outStr.write(line.toString().getBytes());
