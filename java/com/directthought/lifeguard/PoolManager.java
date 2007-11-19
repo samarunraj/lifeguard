@@ -112,7 +112,9 @@ public class PoolManager implements Runnable {
 		}
 		try {
 			// Find existing servers.
-			listInstances();
+			if (config.isFindExistingServers()) {
+				listInstances();
+			}
 
 			// fire up min servers first. They take a least 2 minutes to start up
 			int min = config.getMinSize();
