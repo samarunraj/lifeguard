@@ -14,6 +14,7 @@ import com.directthought.lifeguard.AbstractBaseService.MetaFile;
 import com.directthought.lifeguard.jaxb.FileRef;
 import com.directthought.lifeguard.jaxb.InstanceStatus;
 import com.directthought.lifeguard.jaxb.ObjectFactory;
+import com.directthought.lifeguard.jaxb.ParamType;
 import com.directthought.lifeguard.jaxb.WorkRequest;
 import com.directthought.lifeguard.jaxb.WorkStatus;
 
@@ -36,6 +37,10 @@ public class MessageHelper {
 		ret.setInput(ref);
 		ret.setOutputBucket(wr.getOutputBucket());
 		ret.getOutputs().add(wr.getInput());
+		List<ParamType> params = ret.getParams();
+		for (ParamType p : wr.getParams()) {
+			params.add(p);
+		}
 		GregorianCalendar gc = new GregorianCalendar();
 		gc.setTimeInMillis(startTime);
 		ret.setStartTime(getDataFactory().newXMLGregorianCalendar(gc));
@@ -44,6 +49,7 @@ public class MessageHelper {
 
 		return ret;
 	}
+	// TODO: refactor... 
 
 	public static WorkStatus createServiceStatus(WorkRequest wr,
 						List<MetaFile> outFiles, long startTime, long endTime, String instance) {
@@ -59,6 +65,10 @@ public class MessageHelper {
 			ref.setType(file.mimeType);
 			ref.setLocation("S3");
 			ret.getOutputs().add(ref);
+		}
+		List<ParamType> params = ret.getParams();
+		for (ParamType p : wr.getParams()) {
+			params.add(p);
 		}
 		GregorianCalendar gc = new GregorianCalendar();
 		gc.setTimeInMillis(startTime);

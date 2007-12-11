@@ -1,12 +1,15 @@
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
 		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		xmlns:tns="http://lifeguard-config.directthought.com/doc/2007-06-12/"
+		xmlns:tns="http://lifeguard-config.directthought.com/doc/2007-11-20/"
+		xmlns:com="http://lifeguard-common.directthought.com/doc/2007-11-20/"
 		xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
 		xmlns:xjc="http://java.sun.com/xml/ns/jaxb/xjc"
-		targetNamespace="http://lifeguard-config.directthought.com/doc/2007-06-12/"
+		targetNamespace="http://lifeguard-config.directthought.com/doc/2007-11-20/"
 		jaxb:extensionBindingPrefixes="xjc"
 		jaxb:version="2.0"
 		elementFormDefault="qualified">
+
+	<xs:import namespace="http://lifeguard-common.directthought.com/doc/2007-11-20/"/>
   
 	<!-- pool config file format -->
   
@@ -65,6 +68,7 @@
 				<xs:element name="PoolStatusQueue" type="xs:string" minOccurs="1" maxOccurs="1"/>
 				<xs:element name="ServiceWorkQueue" type="xs:string" minOccurs="1" maxOccurs="1"/>
 				<xs:element name="WorkStatusQueue" type="xs:string" minOccurs="1" maxOccurs="1"/>
+				<xs:element name="Parameter" type="com:paramDefType" minOccurs="0" maxOccurs="unbounded"/>
 			</xs:sequence>
 		</xs:complexType>
 	</xs:element>

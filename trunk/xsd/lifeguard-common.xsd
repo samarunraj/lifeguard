@@ -1,0 +1,45 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xmlns:tns="http://lifeguard-common.directthought.com/doc/2007-11-20/"
+		xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+		xmlns:xjc="http://java.sun.com/xml/ns/jaxb/xjc"
+		targetNamespace="http://lifeguard-common.directthought.com/doc/2007-11-20/"
+		jaxb:extensionBindingPrefixes="xjc"
+		jaxb:version="2.0"
+		elementFormDefault="qualified">
+  
+	<xs:simpleType name="mimeType">
+		<!-- This definition is kept loose to minimize the changes required when -->
+		<!-- adding new mime types. -->
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[a-z]/[a-z]"/>
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:complexType name="paramDefType">
+		<xs:sequence>
+			<xs:element name="Value" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:attribute name="name" type="xs:string"/>
+		<xs:attribute name="type" type="tns:types"/>
+		<xs:attribute name="required" type="xs:boolean"/>
+	</xs:complexType>
+
+	<xs:complexType name="paramType">
+		<xs:simpleContent>
+			<xs:extension base="xs:string">
+				<xs:attribute name="name" type="xs:string"/>
+			</xs:extension>
+		</xs:simpleContent>
+	</xs:complexType>
+
+	<xs:simpleType name="types">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="string"/>
+			<xs:enumeration value="integer"/>
+			<xs:enumeration value="float"/>
+			<xs:enumeration value="boolean"/>
+		</xs:restriction>
+	</xs:simpleType>
+
+</xs:schema> 

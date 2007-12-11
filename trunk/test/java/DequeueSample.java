@@ -1,8 +1,8 @@
 
+import java.util.Properties;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
-import ch.inventec.Base64Coder;
 
 import com.xerox.amazonws.sqs.MessageQueue;
 import com.xerox.amazonws.sqs.Message;
@@ -18,18 +18,19 @@ public class DequeueSample {
     private static Log logger = LogFactory.getLog(DequeueSample.class);
 
 	public static void main( String[] args ) {
-		final String AWSAccessKeyId = "[AWS Access Id]";
-		final String SecretAccessKey = "[AWS Secret Key]";
-
 		int count = 0;
 		try {
 			if (args.length < 1) {
 				logger.error("usage: DequeueSample <queueId>");
 			}
+			Properties props = new Properties();
+			props.load(AddWork.class.getClassLoader().getResourceAsStream("aws.properties"));
+
 			String queueName = args[0];
 
 			// Retrieve the message queue object (by name).
-			QueueService qs = new QueueService(AWSAccessKeyId, SecretAccessKey, false, "localhost");
+			QueueService qs = new QueueService(props.getProperty("aws.accessId"),
+						props.getProperty("aws.secretKey"));
 			MessageQueue msgQueue = qs.getOrCreateMessageQueue(queueName);
 
 			// Try to retrieve (dequeue) the message, and then delete it.
@@ -42,11 +43,6 @@ public class DequeueSample {
 					continue;
 				}
 				String text = msg.getMessageBody();
-				try {
-					text = Base64Coder.decodeString(text);
-				} catch (IllegalArgumentException ex) {
-					logger.warn("Message wasn't base64 encoded.");
-				}
 				logger.debug("msg : "+text);
 				msgQueue.deleteMessage(msg);
 				logger.info( "Deleted message id " + msg.getMessageId());
