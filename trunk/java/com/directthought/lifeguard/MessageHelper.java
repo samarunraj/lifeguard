@@ -59,12 +59,14 @@ public class MessageHelper {
 		ret.setServiceName(wr.getServiceName());
 		ret.setInputBucket(wr.getInputBucket());
 		ret.setInput(wr.getInput());
-		for (MetaFile file : outFiles) {
-			FileRef ref = of.createFileRef();
-			ref.setKey(file.key);
-			ref.setType(file.mimeType);
-			ref.setLocation("S3");
-			ret.getOutputs().add(ref);
+		if (outFiles != null) {
+			for (MetaFile file : outFiles) {
+				FileRef ref = of.createFileRef();
+				ref.setKey(file.key);
+				ref.setType(file.mimeType);
+				ref.setLocation("S3");
+				ret.getOutputs().add(ref);
+			}
 		}
 		List<ParamType> params = ret.getParams();
 		for (ParamType p : wr.getParams()) {
