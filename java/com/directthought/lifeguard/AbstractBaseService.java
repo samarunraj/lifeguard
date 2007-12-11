@@ -30,6 +30,7 @@ import com.xerox.amazonws.sqs.MessageQueue;
 import com.xerox.amazonws.sqs.QueueService;
 import com.xerox.amazonws.sqs.SQSException;
 
+import com.directthought.lifeguard.jaxb.FileRef;
 import com.directthought.lifeguard.jaxb.InstanceStatus;
 import com.directthought.lifeguard.jaxb.ServiceConfig;
 import com.directthought.lifeguard.jaxb.Step;
@@ -125,6 +126,7 @@ public abstract class AbstractBaseService implements Runnable {
 					// parse work
 					WorkRequest request = null;
 					long startTime = System.currentTimeMillis();
+					File inputFile = null;
 					try {
 						request = JAXBuddy.deserializeXMLStream(WorkRequest.class,
 										new ByteArrayInputStream(msg.getMessageBody().getBytes()));
@@ -133,10 +135,12 @@ public abstract class AbstractBaseService implements Runnable {
 						// pull file from S3
 						RestS3Service s3 = new RestS3Service(new AWSCredentials(accessId, secretKey));
 						S3Bucket inBucket = new S3Bucket(request.getInputBucket());
-						S3Object obj = s3.getObject(inBucket, request.getInput().getKey());
+						FileRef inFile = request.getInput();
+						S3Object obj = s3.getObject(inBucket, inFile.getKey());
 						InputStream iStr = obj.getDataInputStream();
 						// should convert from mime-type to extension
-						File inputFile = File.createTempFile("lg-", ".dat", new File("."));
+						String ext = inFile.getKey().substring(inFile.getKey().lastIndexOf('.'));
+						inputFile = File.createTempFile("lg-", ext, new File("."));
 						byte [] buf = new byte[64*1024];	// 64k i/o buffer
 						FileOutputStream oStr = new FileOutputStream(inputFile);
 						int count = iStr.read(buf);
@@ -202,6 +206,10 @@ public abstract class AbstractBaseService implements Runnable {
 						ws.setFailureMessage(se.getMessage());
 						String message = JAXBuddy.serializeXMLString(WorkStatus.class, ws);
 						QueueUtil.sendMessageForSure(workStatusQueue, message);
+					}
+					if (inputFile != null && inputFile.exists()) {
+						inputFile.delete();
+						inputFile = null;
 					}
 					workQueue.deleteMessage(msg);
 					sendPoolStatus(poolStatusQueue, false);
