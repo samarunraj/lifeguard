@@ -42,3 +42,7 @@ If there are messages in the queue, the pool should not be ramped down.
 If there are messages in the queue and the pool is being ramped up, the number of servers added should be based on some combination of the ramp up interval and the number of messages in the queue.
 
 It is important to note that since instance status messages might not arrive in order, it might be impossible to tell for certain, which servers are idle and which are busy. Further, the timestamp in those messages can't be used to track pool state without some means of storing message for a period of time to ensure nothing is processed out of sequence. To provide a better assessment of service instance usage each server will report the amount of time since it's last message as (LastInterval). This will be used to calculate real utilization. If an instance is truely idle, it might not report status for some time, so the pool manager will need to track time on the idle queue internally. All of this information will be used to come up with a load value for each server, and that will be used to determine pool ramp-up/ramp-down.
+
+= Phase 2 =
+
+This phase will include a UI to monitor the pool status and tweak them in real-time. I'm going to look at GWT or YUI. The persistence layer will also be improved. The current status saver will be augmented with one using iBatis. This will also be designed to handle other persistence needs beyond status, like project, batch, workflow config.
