@@ -148,7 +148,7 @@ public class SimulateServers implements PoolMonitor {
 				try {
 					long newTime = System.currentTimeMillis();
 					int duration = (int)((newTime - lastSend) / 1000);	// duration in seconds
-					String msg = "<InstanceStatus xmlns=\"http://lifeguard.directthought.com/doc/2007-06-12/\"><InstanceId>"+
+					String msg = "<InstanceStatus xmlns=\"http://lifeguard.directthought.com/doc/2007-11-20/\"><InstanceId>"+
 						id+"</InstanceId><State>"+state+"</State><LastInterval>PT"
 						+duration+"S</LastInterval><Timestamp></Timestamp></InstanceStatus>";
 					String msgId = statusQueue.sendMessage(msg);

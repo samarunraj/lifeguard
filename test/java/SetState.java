@@ -34,7 +34,7 @@ public class SetState {
 			MessageQueue msgQueue = SQSUtils.connectToQueue(statusQueue,
 					props.getProperty("aws.accessId"), props.getProperty("aws.secretKey"));
 
-			String msg = "<InstanceStatus xmlns=\"http://lifeguard.directthought.com/doc/2007-06-12/\"><InstanceId>"+instanceId+"</InstanceId><State>"+state+"</State><LastInterval>P"+duration+"M</LastInterval><Timestamp></Timestamp></InstanceStatus>";
+			String msg = "<InstanceStatus xmlns=\"http://lifeguard.directthought.com/doc/2007-11-20/\"><InstanceId>"+instanceId+"</InstanceId><State>"+state+"</State><LastInterval>P"+duration+"M</LastInterval><Timestamp></Timestamp></InstanceStatus>";
 			String msgId = msgQueue.sendMessage(msg);
 			logger.info( "Sent message with id " + msgId );
 		} catch ( Exception ex ) {

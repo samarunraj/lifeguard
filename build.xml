@@ -1,6 +1,7 @@
 <?xml version="1.0" standalone="yes"?>
 
 <project name="lifeguard" basedir="." default="compile">
+    <property file="${basedir}/conf/aws.properties"/>
     <property name="lifeguard" value="${basedir}"/>
     <property name="lifeguard.build" value="${lifeguard}/build" />
     <property name="lifeguard.conf" value="${lifeguard}/conf" />
@@ -122,13 +123,13 @@
 		</java>
 	</target>
 
-	<target name="run.textsplit" depends="compile">
+	<target name="run.transcode" depends="compile">
 		<java fork="true" classname="com.directthought.lifeguard.RunService">
 			<classpath>
 				<path refid="lifeguard.compile.classpath"/>
 				<pathelement location="${lifeguard.classes}"/>
 			</classpath>
-			<arg line="com.directthought.lifeguard.service.TextLineSplitterService conf/TextLineSplitter.xml"/>
+			<arg line="com.directthought.lifeguard.service.TranscodeService conf/Transcode.xml ${aws.accessId} ${aws.secretKey} dak"/>
 			<jvmarg value="-Djava.util.logging.config.file=conf/logging.properties"/>
 		</java>
 	</target>

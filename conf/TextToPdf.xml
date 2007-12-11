@@ -1,4 +1,4 @@
-<ServiceConfig xmlns="http://lifeguard-config.directthought.com/doc/2007-06-12/">
+<ServiceConfig xmlns="http://lifeguard-config.directthought.com/doc/2007-11-20/">
 	<ServiceName>TextToPdf</ServiceName>
 	<PoolStatusQueue>poolStatusTextToPdf</PoolStatusQueue>
 	<ServiceWorkQueue>texttopdf-input</ServiceWorkQueue>

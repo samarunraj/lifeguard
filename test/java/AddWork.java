@@ -29,7 +29,7 @@ public class AddWork {
 			MessageQueue msgQueue = SQSUtils.connectToQueue(args[0].trim(),
 					props.getProperty("aws.accessId"), props.getProperty("aws.secretKey"));
 
-			String msg = "<WorkRequest xmlns=\"http://lifeguard.dotech.com/doc/2007-06-12/\"><Project>TestProj</Project><Batch>1001</Batch><ServiceName>ingestor</ServiceName><inputBucket>testbuck</inputBucket><OutputBucket>testbuck</OutputBucket><Input>sampleS3key</Input></WorkRequest>";
+			String msg = "<WorkRequest xmlns=\"http://lifeguard.directthought.com/doc/2007-11-20/\"><Project>TestProj</Project><Batch>1001</Batch><ServiceName>ingestor</ServiceName><InputBucket>video-input</InputBucket><OutputBucket>video-output</OutputBucket><Input>inchworm.3gp</Input><Param name='xcode.a'>320x240</Param></WorkRequest>";
 			String msgId = msgQueue.sendMessage(msg);
 			logger.info( "Sent message with id " + msgId );
 		} catch ( Exception ex ) {

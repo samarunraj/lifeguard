@@ -1,4 +1,4 @@
-<PoolConfig xmlns="http://lifeguard-config.directthought.com/doc/2007-06-12/">
+<PoolConfig xmlns="http://lifeguard-config.directthought.com/doc/2007-11-20/">
 <!--
 	<ServicePool>
 		<ServiceName>testSvc</ServiceName>
@@ -34,6 +34,20 @@
 		<ServiceAMI>ami-30e40159</ServiceAMI>
 		<PoolStatusQueue>poolStatusTextToPdf</PoolStatusQueue>
 		<ServiceWorkQueue>texttopdf-input</ServiceWorkQueue>
+		<RampUpInterval>2</RampUpInterval>
+		<RampUpDelay>60</RampUpDelay>
+		<RampDownInterval>1</RampDownInterval>
+		<RampDownDelay>240</RampDownDelay>
+		<MinSize>0</MinSize>
+		<MaxSize>10</MaxSize>
+		<QueueSizeFactor>50</QueueSizeFactor>
+		<FindExistingServers>false</FindExistingServers>
+	</ServicePool>
+	<ServicePool>
+		<ServiceName>Transcode</ServiceName>
+		<ServiceAMI>ami-30e40159</ServiceAMI>
+		<PoolStatusQueue>poolStatusTranscode</PoolStatusQueue>
+		<ServiceWorkQueue>transcode-input</ServiceWorkQueue>
 		<RampUpInterval>2</RampUpInterval>
 		<RampUpDelay>60</RampUpDelay>
 		<RampDownInterval>1</RampDownInterval>

@@ -1,12 +1,15 @@
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
 		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		xmlns:tns="http://lifeguard.directthought.com/doc/2007-06-12/"
+		xmlns:tns="http://lifeguard.directthought.com/doc/2007-11-20/"
+		xmlns:com="http://lifeguard-common.directthought.com/doc/2007-11-20/"
 		xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
 		xmlns:xjc="http://java.sun.com/xml/ns/jaxb/xjc"
-		targetNamespace="http://lifeguard.directthought.com/doc/2007-06-12/"
+		targetNamespace="http://lifeguard.directthought.com/doc/2007-11-20/"
 		jaxb:extensionBindingPrefixes="xjc"
 		jaxb:version="2.0"
 		elementFormDefault="qualified">
+
+	<xs:import namespace="http://lifeguard-common.directthought.com/doc/2007-11-20/"/>
   
 	<xs:annotation>
 		<xs:documentation xml:lang="en">
@@ -50,6 +53,7 @@
 				<xs:element name="OutputBucket" type="xs:string" minOccurs="1" maxOccurs="1"/>
 				<xs:element name="Input" type="tns:fileRef" minOccurs="1" maxOccurs="1"/>
 				<xs:element name="NextStep" type="tns:step" minOccurs="0" maxOccurs="1"/>
+				<xs:element name="Param" type="com:paramType" minOccurs="0" maxOccurs="unbounded"/>
 			</xs:sequence>
 		</xs:complexType>
 	</xs:element>
@@ -64,6 +68,7 @@
 				<xs:element name="Input" type="tns:fileRef" minOccurs="1" maxOccurs="1"/>
 				<xs:element name="OutputBucket" type="xs:string" minOccurs="1" maxOccurs="1"/>
 				<xs:element name="Output" type="tns:fileRef" minOccurs="1" maxOccurs="unbounded"/>
+				<xs:element name="Param" type="com:paramType" minOccurs="0" maxOccurs="unbounded"/>
 				<xs:element name="StartTime" type="xs:dateTime" minOccurs="1" maxOccurs="1"/>
 				<xs:element name="EndTime" type="xs:dateTime" minOccurs="1" maxOccurs="1"/>
 				<xs:element name="InstanceId" type="xs:string" minOccurs="1" maxOccurs="1"/>
@@ -77,7 +82,7 @@
 	<xs:complexType name="fileRef">
 		<xs:sequence>
 			<xs:element name="Key" type="xs:string" minOccurs="1" maxOccurs="1"/>
-			<xs:element name="Type" type="tns:mimeType" minOccurs="1" maxOccurs="1"/>
+			<xs:element name="Type" type="com:mimeType" minOccurs="1" maxOccurs="1"/>
 			<xs:element name="Location" minOccurs="1" maxOccurs="1">
 				<xs:simpleType>
 					<xs:restriction base="xs:string">
@@ -92,17 +97,9 @@
 	<xs:complexType name="step">
 		<xs:sequence>
 			<xs:element name="WorkQueue" type="xs:string" minOccurs="1" maxOccurs="1"/>
-			<xs:element name="Type" type="tns:mimeType" minOccurs="1" maxOccurs="1"/>
+			<xs:element name="Type" type="com:mimeType" minOccurs="1" maxOccurs="1"/>
 			<xs:element name="NextStep" type="tns:step" minOccurs="0" maxOccurs="1"/>
 		</xs:sequence>
 	</xs:complexType>
-
-	<xs:simpleType name="mimeType">
-		<!-- This definition is kept loose to minimize the changes required when -->
-		<!-- adding new mime types. -->
-		<xs:restriction base="xs:string">
-			<xs:pattern value="[a-z]/[a-z]"/>
-		</xs:restriction>
-	</xs:simpleType>
 
 </xs:schema> 

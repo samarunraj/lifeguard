@@ -1,0 +1,19 @@
+<ServiceConfig xmlns="http://lifeguard-config.directthought.com/doc/2007-11-20/">
+	<ServiceName>Transcode</ServiceName>
+	<PoolStatusQueue>poolStatusTranscode</PoolStatusQueue>
+	<ServiceWorkQueue>transcode-input</ServiceWorkQueue>
+	<WorkStatusQueue>workStatus-input</WorkStatusQueue>
+	<Parameter name="xcode.f" type="string" required="false"/>
+	<Parameter name="xcode.r" type="string" required="false"/>
+	<Parameter name="xcode.b" type="string" required="false"/>
+	<Parameter name="xcode.mbd" type="string" required="false"/>
+	<Parameter name="xcode.flags" type="string" required="false"/>
+	<Parameter name="xcode.aic" type="string" required="false"/>
+	<Parameter name="xcode.cmp" type="integer" required="false"/>
+	<Parameter name="xcode.subcmp" type="integer" required="false"/>
+	<Parameter name="xcode.ar" type="string" required="false"/>
+	<Parameter name="xcode.ab" type="string" required="false"/>
+	<Parameter name="xcode.s" type="string" required="false"/>
+	<Parameter name="xcode.vcodec" type="string" required="false"/>
+	<Parameter name="xcode.acodec" type="string" required="false"/>
+</ServiceConfig>
