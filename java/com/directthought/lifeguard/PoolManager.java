@@ -131,7 +131,7 @@ public class PoolManager implements Runnable {
 			// now, loop forever, checking for busy status and checking work queue size
 			logger.info("Starting PoolManager for service : "+config.getServiceName());
 			while (keepRunning) {
-				Message [] msgs = null;
+				Message [] msgs = new Message[0];
 				try {
 					msgs = statusQueue.receiveMessages(receiveCount);
 				} catch (SQSException ex) {
@@ -225,7 +225,7 @@ public class PoolManager implements Runnable {
 					int busyInterval = (startBusyInterval==0)?0:
 								(int)(System.currentTimeMillis() - startBusyInterval) / 1000;
 					int totalServers = instances.size();
-					logger.debug("queue:"+queueDepth+
+					logger.info("queue:"+queueDepth+
 								" servers:"+totalServers+
 								" load:"+poolLoad+
 								" ii:"+idleInterval+" bi:"+busyInterval);
@@ -250,7 +250,7 @@ public class PoolManager implements Runnable {
 								for (int i=0; i<numToKill; i++) {
 									ids[i] = instances.get(i);
 								}
-								terminateInstances(ids);
+								terminateInstances(ids, false);
 							}
 							startIdleInterval = 0;	// reset
 						}
@@ -283,7 +283,7 @@ public class PoolManager implements Runnable {
 			}
 			// when loop exits, shut down all instances
 			logger.info("Shutting down PoolManager for service : "+config.getServiceName());
-			terminateInstances(instances.toArray(new Instance [] {}));
+			terminateInstances(instances.toArray(new Instance [] {}), true);
 			instances.clear();
 		} catch (Throwable t) {
 			logger.error("something went horribly wrong in the pool manager main loop!", t);
@@ -353,7 +353,7 @@ public class PoolManager implements Runnable {
 		}
 	}
 
-	private void terminateInstances(Instance [] instances) {
+	private void terminateInstances(Instance [] instances, boolean force) {
 		logger.debug("Stopping server(s)");
 		try {
 			if (!noLaunch) {
@@ -361,7 +361,7 @@ public class PoolManager implements Runnable {
 				int x=0;
 				for (Instance i : instances) {
 					// Don't stop instances before minLifetimeInMins
-					if (!i.isMinLifetimeElapsed()) {
+					if (!i.isMinLifetimeElapsed() && !force) {
 						logger.debug("Keeping instance "+i.id+
 							" alive until it has lived for "+
 							minLifetimeInMins+" mins");
@@ -375,7 +375,7 @@ public class PoolManager implements Runnable {
 			}
 			for (Instance i : instances) {
 				// Don't stop instances before minLifetimeInMins
-				if (!i.isMinLifetimeElapsed()) {
+				if (!i.isMinLifetimeElapsed() && !force) {
 					logger.debug("Keeping instance "+i.id+
 						" alive until it has lived for "+
 						minLifetimeInMins+" mins");
