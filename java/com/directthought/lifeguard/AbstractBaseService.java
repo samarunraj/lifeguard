@@ -108,6 +108,7 @@ public abstract class AbstractBaseService implements Runnable {
 						QueueUtil.getQueueOrElse(qs, queuePrefix+config.getWorkStatusQueue());
 			lastTime = System.currentTimeMillis();
 
+			MessageWatcher msgWatcher = null;
 			while (true) {
 				try {
 					// read work queue
@@ -121,6 +122,14 @@ public abstract class AbstractBaseService implements Runnable {
 						logger.debug("no message, sleeping...");
 						try { Thread.sleep(secondsToSleep*1000); } catch (InterruptedException ex) {}
 						continue;
+					}
+					else {
+						// start message watcher which bumps visibility timeuot while we process
+						if (msgWatcher != null) {	// just in case...
+							msgWatcher.interrupt();
+						}
+						msgWatcher = new MessageWatcher(workQueue, msg);
+						msgWatcher.start();
 					}
 					sendPoolStatus(poolStatusQueue, true);
 					// parse work
@@ -206,6 +215,11 @@ public abstract class AbstractBaseService implements Runnable {
 						ws.setFailureMessage(se.getMessage());
 						String message = JAXBuddy.serializeXMLString(WorkStatus.class, ws);
 						QueueUtil.sendMessageForSure(workStatusQueue, message);
+					} finally {
+						if (msgWatcher != null) {
+							msgWatcher.interrupt();
+							msgWatcher = null;
+						}
 					}
 					if (inputFile != null && inputFile.exists()) {
 						inputFile.delete();
@@ -252,6 +266,32 @@ public abstract class AbstractBaseService implements Runnable {
 			logger.error("Problem serializing instance status!?", ex);
 		} catch (IOException ex) {
 			logger.error("Problem serializing instance status!?", ex);
+		}
+	}
+
+	class MessageWatcher extends Thread {
+		private MessageQueue queue;
+		private Message msg;
+
+		public MessageWatcher(MessageQueue queue, Message msg) {
+			this.queue = queue;
+			this.msg = msg;
+		}
+
+		public void run() {
+			while (!isInterrupted()) {
+				// sleep for 25 seconds, then bump that timeout
+				try { Thread.sleep(25000); } catch (InterruptedException ex) { interrupt(); }
+				while (!isInterrupted()) {
+					try {
+						queue.setVisibilityTimeout(msg, 30);
+						break;
+					} catch (SQSException ex) {
+						logger.warn("Error setting visibility timeout, Retrying.");
+						try { Thread.sleep(1000); } catch (InterruptedException iex) {}
+					}
+				}
+			}
 		}
 	}
 }
