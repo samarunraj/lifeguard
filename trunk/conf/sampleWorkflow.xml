@@ -1,0 +1,35 @@
+<Workflow xmlns="http://lifeguard-ws.directthought.com/doc/2007-11-20/">
+<!--
+	<Service>
+		<Name>TextLineSplitter</Name>
+		<WorkQueue>textsplit-input</WorkQueue>
+		<InputType>text/plain</InputType>
+		<OutputType>text/plain</OutputType>
+	</Service>
+	<Service>
+		<Name>TextToPdf</Name>
+		<WorkQueue>texttopdf-input</WorkQueue>
+		<InputType>text/plain</InputType>
+		<OutputType>application/pdf</OutputType>
+	</Service>
+	-->
+	<Service>
+		<Name>Transcode</Name>
+		<WorkQueue>transcode-input</WorkQueue>
+		<InputType>video/*</InputType>
+		<OutputType>video/*</OutputType>
+		<Param name='xcode.f'>mov</Param>
+		<Param name='xcode.r'>29.97</Param>
+		<Param name='xcode.b'>1200000</Param>
+		<Param name='xcode.mbd'>2</Param>
+		<Param name='xcode.flags'>+4mv+trell</Param>
+		<Param name='xcode.aic'>2</Param>
+		<Param name='xcode.cmp'>2</Param>
+		<Param name='xcode.subcmp'>2</Param>
+		<Param name='xcode.ar'>48000</Param>
+		<Param name='xcode.ab'>192000</Param>
+		<Param name='xcode.s'>320x240</Param>
+		<Param name='xcode.vcodec'>mpeg4</Param>
+		<Param name='xcode.acodec'>ac3</Param>
+	</Service>
+</Workflow>

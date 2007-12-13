@@ -29,7 +29,27 @@ public class AddWork {
 			MessageQueue msgQueue = SQSUtils.connectToQueue(args[0].trim(),
 					props.getProperty("aws.accessId"), props.getProperty("aws.secretKey"));
 
-			String msg = "<WorkRequest xmlns=\"http://lifeguard.directthought.com/doc/2007-11-20/\"><Project>TestProj</Project><Batch>1001</Batch><ServiceName>ingestor</ServiceName><InputBucket>video-input</InputBucket><OutputBucket>video-output</OutputBucket><Input>inchworm.3gp</Input><Param name='xcode.a'>320x240</Param></WorkRequest>";
+			String msg = "<WorkRequest xmlns=\"http://lifeguard.directthought.com/doc/2007-11-20/\">"+
+					"<Project>TestProj</Project>"+
+					"<Batch>1001</Batch>"+
+					"<ServiceName>ingestor</ServiceName>"+
+					"<InputBucket>video-input</InputBucket>"+
+					"<OutputBucket>video-output</OutputBucket>"+
+					"<Input><Key>marc_large.flv</Key><Type></Type><Location>S3</Location></Input>"+
+					"<Param name='xcode.f'>mov</Param>"+
+					"<Param name='xcode.r'>29.97</Param>"+
+					"<Param name='xcode.b'>1200000</Param>"+
+					"<Param name='xcode.mbd'>2</Param>"+
+					"<Param name='xcode.flags'>+4mv+trell</Param>"+
+					"<Param name='xcode.aic'>2</Param>"+
+					"<Param name='xcode.cmp'>2</Param>"+
+					"<Param name='xcode.subcmp'>2</Param>"+
+					"<Param name='xcode.ar'>48000</Param>"+
+					"<Param name='xcode.ab'>192000</Param>"+
+					"<Param name='xcode.s'>320x240</Param>"+
+					"<Param name='xcode.vcodec'>mpeg4</Param>"+
+					"<Param name='xcode.acodec'>ac3</Param>"+
+					"</WorkRequest>";
 			String msgId = msgQueue.sendMessage(msg);
 			logger.info( "Sent message with id " + msgId );
 		} catch ( Exception ex ) {

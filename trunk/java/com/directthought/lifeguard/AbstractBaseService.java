@@ -148,8 +148,7 @@ public abstract class AbstractBaseService implements Runnable {
 						S3Object obj = s3.getObject(inBucket, inFile.getKey());
 						InputStream iStr = obj.getDataInputStream();
 						// should convert from mime-type to extension
-						String ext = inFile.getKey().substring(inFile.getKey().lastIndexOf('.'));
-						inputFile = File.createTempFile("lg-", ext, new File("."));
+						inputFile = File.createTempFile("lg-", ".tmp", new File("."));
 						byte [] buf = new byte[64*1024];	// 64k i/o buffer
 						FileOutputStream oStr = new FileOutputStream(inputFile);
 						int count = iStr.read(buf);
