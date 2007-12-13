@@ -6,6 +6,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.List;
 
+import javax.activation.MimetypesFileTypeMap;
 import javax.xml.bind.JAXBException;
 
 import org.apache.commons.logging.Log;
@@ -124,7 +125,7 @@ public abstract class IngestorBase {
 				// send work request message
 				FileRef ref = of.createFileRef();
 				ref.setKey(s3Key);
-				ref.setType("image/tiff");
+				ref.setType(new MimetypesFileTypeMap().getContentType(file));
 				ref.setLocation("");
 				wr.setInput(ref);
 				long endTime = System.currentTimeMillis();
