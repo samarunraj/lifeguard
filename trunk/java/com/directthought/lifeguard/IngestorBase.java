@@ -24,6 +24,7 @@ import com.xerox.amazonws.sqs.SQSException;
 
 import com.directthought.lifeguard.jaxb.FileRef;
 import com.directthought.lifeguard.jaxb.ObjectFactory;
+import com.directthought.lifeguard.jaxb.ParamType;
 import com.directthought.lifeguard.jaxb.Service;
 import com.directthought.lifeguard.jaxb.Step;
 import com.directthought.lifeguard.jaxb.Workflow;
@@ -84,6 +85,7 @@ public abstract class IngestorBase {
 			wr.setServiceName("ingestor");
 			wr.setInputBucket(inputBucket);
 			wr.setOutputBucket(outputBucket);
+			List<ParamType> wrParams = wr.getParams();
 			// build pipeline steps
 			Step step = of.createStep();
 			boolean first = true;
@@ -102,6 +104,10 @@ public abstract class IngestorBase {
 				}
 				else {
 					first = false;
+				}
+				// accumulate params from all of the services
+				for (ParamType p : svc.getParams()) {
+					wrParams.add(p);
 				}
 			}
 			step.setNextStep(null);	// null out last step, filled in for next loop iteration

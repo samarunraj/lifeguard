@@ -167,7 +167,9 @@ public abstract class AbstractBaseService implements Runnable {
 						logger.debug("service produced "+results.size()+" results");
 						// send results to S3
 						for (MetaFile file : results) {
-							file.key = MD5Util.md5Sum(new FileInputStream(file.file));
+							if (file.key == null || file.key.trim().equals("")) {
+								file.key = MD5Util.md5Sum(new FileInputStream(file.file));
+							}
 							S3Bucket outBucket = new S3Bucket(request.getOutputBucket());
 							obj = new S3Object(outBucket, file.key);
 							obj.setDataInputFile(file.file);
