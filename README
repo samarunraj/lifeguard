@@ -25,6 +25,30 @@ Transcode - this service calls ffmpeg to do video transcoding
 
 Change history for this version;
 ------------------------------------------------------------------------
+r55 | dkavanagh | 2007-12-13 16:47:00 -0500 (Thu, 13 Dec 2007) | 3 lines
+
+set mimetype in ingestor based on file info updates to some scripts and updated properties, to run transcoding
+------------------------------------------------------------------------
+r54 | dkavanagh | 2007-12-13 08:35:00 -0500 (Thu, 13 Dec 2007) | 3 lines
+
+allow services to specify output key pass service parameters to work request (ingestor)
+------------------------------------------------------------------------
+r53 | dkavanagh | 2007-12-13 00:17:21 -0500 (Thu, 13 Dec 2007) | 2 lines
+
+Added watcher to push message visibility timeout, out while service is running
+------------------------------------------------------------------------
+r52 | dkavanagh | 2007-12-12 13:09:20 -0500 (Wed, 12 Dec 2007) | 2 lines
+
+fixed problem where pool mgr didn't terminate instances on exit.
+------------------------------------------------------------------------
+r50 | dkavanagh | 2007-12-11 14:16:02 -0500 (Tue, 11 Dec 2007) | 2 lines
+
+ensure input file is deleted upon service error; name input file based on input key extension
+------------------------------------------------------------------------
+r49 | dkavanagh | 2007-12-11 12:06:13 -0500 (Tue, 11 Dec 2007) | 2 lines
+
+allow outFiles to be null (in case of error being reported via status); fixed path in TranscodeSerivce
+------------------------------------------------------------------------
 r48 | dkavanagh | 2007-12-10 21:34:49 -0500 (Mon, 10 Dec 2007) | 2 lines
 
 added service params; all test code updated; Added TranscodeService, AMI will be made public; updated to typica 0.9
