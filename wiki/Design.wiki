@@ -45,4 +45,4 @@ It is important to note that since instance status messages might not arrive in 
 
 = Phase 2 =
 
-This phase will include a UI to monitor the pool status and tweak them in real-time. I'm going to look at GWT or YUI. The persistence layer will also be improved. The current status saver will be augmented with one using iBatis. This will also be designed to handle other persistence needs beyond status, like project, batch, workflow config.
+This phase will include a UI to monitor the pool status and tweak them in real-time. I'm working with Dojo and JSON to put the UI together. The persistence layer will also be improved. The current status saver will be augmented with one using iBatis and possibly SimpleDB. This will also be designed to handle other persistence needs beyond status, like project, batch, workflow config.
