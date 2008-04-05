@@ -10,7 +10,7 @@ The pool manager can be run from the command-line. The script "poolManager.sh" i
 === Ingestor ===
 The ingestor implementation that is provided in this release takes a list of files as arguments. To run it, use the "ingest.sh" script in the base install directory. You must provide some required arguments before supplying the files.
 {{{
-./ingest.sh Project batch001 myBucket conf/sampleService.xml <file 1> ... <file n>
+./ingest.sh Project batch001 myBucket conf/sampleWorkflow.xml <file 1> ... <file n>
 }}}
 
 === Service ===
