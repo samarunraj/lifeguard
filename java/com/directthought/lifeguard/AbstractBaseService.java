@@ -106,6 +106,15 @@ public abstract class AbstractBaseService implements Runnable {
 						QueueUtil.getQueueOrElse(qs, queuePrefix+config.getServiceWorkQueue());
 			MessageQueue workStatusQueue =
 						QueueUtil.getQueueOrElse(qs, queuePrefix+config.getWorkStatusQueue());
+			File tmpDir = new File(".");
+			String dirName = config.getTempDirectory();
+			if (dirName != null && !dirName.equals("")) {
+				tmpDir = new File(dirName);
+				logger.debug("Using temp directory : "+dirName);
+				if (!tmpDir.exists()) {
+					tmpDir.mkdirs();
+				}
+			}
 			lastTime = System.currentTimeMillis();
 
 			MessageWatcher msgWatcher = null;
@@ -148,7 +157,7 @@ public abstract class AbstractBaseService implements Runnable {
 						S3Object obj = s3.getObject(inBucket, inFile.getKey());
 						InputStream iStr = obj.getDataInputStream();
 						// should convert from mime-type to extension
-						inputFile = File.createTempFile("lg-", ".tmp", new File("."));
+						inputFile = File.createTempFile("lg-", ".tmp", tmpDir);
 						byte [] buf = new byte[64*1024];	// 64k i/o buffer
 						FileOutputStream oStr = new FileOutputStream(inputFile);
 						int count = iStr.read(buf);
