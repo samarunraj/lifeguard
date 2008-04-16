@@ -1,4 +1,3 @@
-==Success Stories==
 _Lifeguard in the real world._
 
 Some people who are using lifeguard are going public about it. Some are sharing the services they've written. To help highlight these installations and contributions, we'll start by listing them here! The code contributions will be checked into SVN under the contrib directory.
