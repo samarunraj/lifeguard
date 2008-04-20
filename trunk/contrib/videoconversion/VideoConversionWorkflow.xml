@@ -1,0 +1,12 @@
+<Workflow xmlns="http://lifeguard-ws.directthought.com/doc/2007-11-20/">
+	<Service>
+		<Name>VideoConversionService</Name>
+		<WorkQueue>vh-test-workq</WorkQueue>
+		<InputType>video/avi</InputType>
+		<OutputType>video/x-flv</OutputType>
+		<Param name='ThumbnailCreationCommand'>ffmpeg -y -i %i -vframes 1 -ss 00:00:02 -an -vcodec mjpeg -f rawvideo -s 130x100 %o</Param>
+		<Param name='VideoConversionCommand'>ffmpeg -i %i -f flv -b 750000 -s 400x300 -acodec libmp3lame -ar 22050 -ab 64k -ac 1 %o</Param>
+		<Param name='ThumbnailTimeoutMillseconds'>120000</Param>
+		<Param name='VideoTimeoutMilliseconds'>900000</Param>
+	</Service>
+</Workflow>
