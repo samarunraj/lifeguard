@@ -1,0 +1,6 @@
+<ServiceConfig xmlns="http://lifeguard-config.directthought.com/doc/2007-11-20/">
+	<ServiceName>Ghostscript</ServiceName>
+	<PoolStatusQueue>poolStatusGhostscript</PoolStatusQueue>
+	<ServiceWorkQueue>ghostscript-input</ServiceWorkQueue>
+	<WorkStatusQueue>workStatus-input</WorkStatusQueue>
+</ServiceConfig>
