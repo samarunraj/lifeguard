@@ -28,7 +28,14 @@ import com.directthought.lifeguard.jaxb.WorkRequest;
 public class GhostscriptService extends AbstractBaseService {
 	private static Log logger = LogFactory.getLog(GhostscriptService.class);
 
+	private final static String MONO_DEV = "tiffg4";
+	private final static String GRAY_DEV = "tiffgray";
+	private final static String RGB_DEV = "tiff24nc";
+	private final static String CMYK_DEV = "tiff32nc";
+
 	private final static String RUN_CMD = "./run_ghostscript ";
+
+	private int dpi = 600;
 
 	public GhostscriptService(ServiceConfig config, String accessId, String secretKey, String queuePrefix) {
 		super(config, accessId, secretKey, queuePrefix);
@@ -38,23 +45,37 @@ public class GhostscriptService extends AbstractBaseService {
 		String outFileName = inputFile.getName();
 		int idx = outFileName.lastIndexOf('.');
 		outFileName = ((idx==-1)?outFileName:outFileName.substring(0, idx-1));
-		/*
-		StringBuilder args = new StringBuilder();
+		String device = MONO_DEV;
 		for (ParamType p : request.getParams()) {
 			String param = p.getName();
-			if (param.startsWith("xcode.")) {
-				args.append(" -");
-				args.append(param.substring(6));
-				args.append(" ");
-				args.append(p.getValue());
+			String value = p.getValue();
+			if (param.equals("color")) {
+				if (value.equals("MONO")) {
+					device = MONO_DEV;
+				}
+				else if (value.equals("GRAY")) {
+					device = GRAY_DEV;
+				}
+				else if (value.equals("RGB")) {
+					device = RGB_DEV;
+				}
+				else if (value.equals("CMYK")) {
+					device = CMYK_DEV;
+				}
+			}
+			else if (param.equals("dpi")) {
+				try {
+					dpi = Integer.parseInt(value);
+				} catch (NumberFormatException ex) {
+					logger.error("Couldn't parse DPI, using default", ex);
+				}
 			}
 		}
-		*/
 		try {
 			File workingDir = new File("/home/lifeguard");
 			logger.info("Going to run : "+RUN_CMD+inputFile.getPath());
 			Process proc = Runtime.getRuntime().exec(
-							RUN_CMD+inputFile.getPath()+" "+inputFile.getParentFile().getPath()+"/"+outFileName,
+							RUN_CMD+inputFile.getPath()+" "+device+" "+dpi,
 							null,
 							workingDir);
 	// for lots of fun debug... uncomment the lines below

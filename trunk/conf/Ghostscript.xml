@@ -3,4 +3,10 @@
 	<PoolStatusQueue>poolStatusGhostscript</PoolStatusQueue>
 	<ServiceWorkQueue>ghostscript-input</ServiceWorkQueue>
 	<WorkStatusQueue>workStatus-input</WorkStatusQueue>
+	<Parameter name="color" type="string" required="false">
+		<Value>MONO</Value>
+		<Value>GRAY</Value>
+		<Value>RGB</Value>
+		<Value>CMYK</Value>
+	</Parameter>
 </ServiceConfig>
