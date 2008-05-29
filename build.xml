@@ -1,26 +1,38 @@
 <?xml version="1.0" standalone="yes"?>
 
 <project name="lifeguard" basedir="." default="compile">
+    <property file="${user.home}/.build.properties"/>
+    <property file="${basedir}/.build.properties"/>
     <property file="${basedir}/conf/aws.properties"/>
     <property name="lifeguard" value="${basedir}"/>
     <property name="lifeguard.build" value="${lifeguard}/build" />
     <property name="lifeguard.conf" value="${lifeguard}/conf" />
     <property name="lifeguard.lib" value="lib" />
     <property name="lifeguard.src" value="${lifeguard}/java" />
+    <property name="lifeguard.webapp" value="${lifeguard}/webapp" />
 	<property name="lifeguard.jar" value="${lifeguard.build}/jar" />
+	<property name="lifeguard.build.webapp" value="${lifeguard.build}/webapp" />
 	<property name="lifeguard.jar.file" value="${lifeguard.jar}/lifeguard.jar" />
     <property name="lifeguard.classes" value="${lifeguard.build}/classes" />
     <property name="lifeguard.jar.classes" value="${lifeguard.jar}/classes" />
     <property name="lifeguard.generated" value="${lifeguard.build}/generated" />
     <property name="lifeguard.javadoc" value="${lifeguard.build}/apidocs" />
     <property name="lifeguard.dist" value="${lifeguard}/dist" />
+    <property name="FLEX_HOME" value="d:/downloads/flex_sdk" />
 
 	<path id="lifeguard.compile.classpath">
-          <fileset dir="${lifeguard.lib}">
-          </fileset>
-          <dirset dir="${lifeguard.classes}"/>
+		<fileset dir="${lifeguard.lib}">
+		</fileset>
+		<dirset dir="${lifeguard.classes}"/>
 	</path>
 
+	<path id="jaxb.jars">
+		<fileset dir="${lifeguard.lib}">
+			<include name="jaxb*.jar, activation.jar, jsr173*.jar"/>
+		</fileset>
+	</path>
+
+	<taskdef name="hotswap" classname="dak.ant.taskdefs.Hotswap" onerror="ignore"/>
 	<taskdef name="xjc" classname="com.sun.tools.xjc.XJCTask">
 		<classpath>
 			<fileset dir="${lifeguard.lib}" includes="**/*.jar"/>
@@ -61,6 +73,14 @@
 		</javac>
     </target>
 
+	<taskdef name="mxmlc" classname="flex.ant.MxmlcTask"/>
+
+	<target name="flex">
+		<mxmlc file="flex/Lifeguard.mxml" output="${lifeguard.build.webapp}/Lifeguard.swf" as3="true">
+			<source-path path-element="${FLEX_HOME}/frameworks"/>
+		</mxmlc>
+	</target>
+
 	<target name="test.compile" depends="compile" description="Compile test java files">
 		<property name="test.src.path" value="test/java"/>
 		<javac destdir="${lifeguard.classes}" debug="on">
@@ -76,6 +96,64 @@
 				<exclude name="**/aws.properties"/>
 			</fileset>
 		</jar>
+	</target>
+
+	<target name="hotswap">
+		<tstamp>
+			<format property="class.tstamp" pattern="MM/dd/yyyy kk:mm:ss" />
+		</tstamp>
+
+		<antcall target="compile"/>
+
+		<hotswap verbose="true" port="9000">
+			<fileset dir="${lifeguard.classes.dir}" includes="**/*.class">
+			<date datetime="${class.tstamp}" pattern="MM/dd/yyyy kk:mm:ss" when="after" granularity="0"/>
+		</fileset>
+		</hotswap>
+	</target>
+
+	<target name="check.for.tomcat" if="catalina.home">
+		<property name="lifeguard.webapp.dist" value="${catalina.home}/webapps/lifeguard"/>
+	</target>
+
+	<target name="check.for.java6">
+		<condition property="isJava6">
+			<contains string="ant.java.version" substring="1.6"/>
+		</condition>
+	</target>
+
+	<target name="deploy" depends="compile,flex,check.for.tomcat" description="deploy for development file">
+		<!-- The line below only defines the property if the target above hasn't already. -->
+    	<property name="lifeguard.webapp.dist"  value="${lifeguard.build.webapp}"/>
+		<copy toDir="${lifeguard.webapp.dist}">
+			<fileset dir="${lifeguard.webapp}" includes="**/*"/>
+		</copy>
+		<copy toDir="${lifeguard.webapp.dist}">
+			<fileset dir="${lifeguard.build.webapp}" includes="**/*.swf"/>
+		</copy>
+		<mkdir dir="${lifeguard.webapp.dist}/WEB-INF/classes"/>
+		<copy toDir="${lifeguard.webapp.dist}/WEB-INF/classes">
+			<fileset dir="${lifeguard.classes}" includes="**/*"/>
+		</copy>
+		<mkdir dir="${lifeguard.webapp.dist}/WEB-INF/lib"/>
+		<copy toDir="${lifeguard.webapp.dist}/WEB-INF/lib">
+			<fileset dir="${lifeguard.lib}" includes="**/*" excludes="servlet-api.jar,hotswap.jar, jaxb*, jsr*, activation*, itext*"/>
+		</copy>
+	</target>
+
+	<target name="war" depends="compile,flex" description="Generate war file">
+		<copy toDir="${lifeguard.build.webapp}">
+			<fileset dir="${lifeguard.webapp}" includes="**/*"/>
+		</copy>
+		<mkdir dir="${lifeguard.build.webapp}/WEB-INF/classes"/>
+		<copy toDir="${lifeguard.build.webapp}/WEB-INF/classes">
+			<fileset dir="${lifeguard.classes}" includes="**/*"/>
+		</copy>
+		<mkdir dir="${lifeguard.build.webapp}/WEB-INF/lib"/>
+		<copy toDir="${lifeguard.build.webapp}/WEB-INF/lib">
+			<fileset dir="${lifeguard.lib}" includes="**/*" excludes="servlet-api.jar,hotswap.jar"/>
+		</copy>
+		<jar destfile="${lifeguard.dist}/${ant.project.name}.war" basedir="${lifeguard.build.webapp}"/>
 	</target>
 
 	<target name="javadoc" depends="init">
@@ -140,7 +218,7 @@
 				<path refid="lifeguard.compile.classpath"/>
 				<pathelement location="${lifeguard.classes}"/>
 			</classpath>
-			<arg line="com.directthought.lifeguard.service.TextToPdfService conf/TextToPdf.xml blah  blah dak"/>
+			<arg line="com.directthought.lifeguard.service.TextToPdfService conf/TextToPdf.xml ${aws.accessId} ${aws.secretKey} dak"/>
 
 			<jvmarg value="-Djava.util.logging.config.file=conf/logging.properties"/>
 		</java>

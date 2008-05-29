@@ -15,7 +15,9 @@ import org.apache.commons.logging.LogFactory;
 
 import com.xerox.amazonws.common.JAXBuddy;
 import com.xerox.amazonws.ec2.EC2Exception;
+import com.xerox.amazonws.ec2.InstanceType;
 import com.xerox.amazonws.ec2.Jec2;
+import com.xerox.amazonws.ec2.LaunchConfiguration;
 import com.xerox.amazonws.ec2.ReservationDescription;
 import com.xerox.amazonws.sqs.Message;
 import com.xerox.amazonws.sqs.MessageQueue;
@@ -41,6 +43,8 @@ public class PoolManager implements Runnable {
 	protected String keypairName = "unknown-keypair";
 	protected boolean noLaunch = false;
 	protected int secondsToSleep = 4;
+	protected String proxyHost;
+	protected int proxyPort;
 
 	// runtime data - stuff to save when saving state
 	protected List<Instance> instances;
@@ -99,6 +103,20 @@ public class PoolManager implements Runnable {
 		this.secondsToSleep = secs;
 	}
 
+	public void setProxyHost(String host) {
+		proxyHost = host;
+	}
+
+	public void setProxyPort(String port) {
+		if (!port.trim().equals("")) {
+			try {
+				proxyPort = Integer.parseInt(port);
+			} catch (NumberFormatException ex) {
+				logger.error("Could not parse proxy port!", ex);
+			}
+		}
+	}
+
 	protected String getUserData() {
 		return awsAccessId+" "+awsSecretKey+" "+queuePrefix+" "+config.getServiceName();
 	}
@@ -122,6 +140,9 @@ public class PoolManager implements Runnable {
 				launchInstances(min - instances.size());
 			}
 			QueueService qs = new QueueService(awsAccessId, awsSecretKey);
+			if (!proxyHost.trim().equals("")) {
+				qs.setProxyValues(proxyHost, proxyPort);
+			}
 			MessageQueue statusQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+config.getPoolStatusQueue());
 			MessageQueue workQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+config.getServiceWorkQueue());
 
@@ -297,6 +318,9 @@ public class PoolManager implements Runnable {
 	// Finds any EC2 instances based on the appropriate AMI that are already running
 	private void listInstances() throws EC2Exception {
 		Jec2 ec2 = new Jec2(awsAccessId, awsSecretKey);
+		if (!proxyHost.trim().equals("")) {
+			ec2.setProxyValues(proxyHost, proxyPort);
+		}
 		List<String> params = new ArrayList<String>();
 		List<ReservationDescription> reservations = ec2.describeInstances(params);
 
@@ -333,9 +357,22 @@ public class PoolManager implements Runnable {
 			}
 			else {
 				Jec2 ec2 = new Jec2(awsAccessId, awsSecretKey);
-				ReservationDescription result = ec2.runInstances(config.getServiceAMI(),
-															1, numToLaunch, null,
-															getUserData(), keypairName);
+				if (!proxyHost.trim().equals("")) {
+					ec2.setProxyValues(proxyHost, proxyPort);
+				}
+				LaunchConfiguration lc =
+							new LaunchConfiguration(config.getServiceAMI(), 1, numToLaunch);
+				lc.setUserData(getUserData().getBytes());
+				lc.setKeyName(keypairName);
+				String type = config.getInstanceType();
+				if (type!=null && !type.trim().equals("")) {
+					lc.setInstanceType(InstanceType.getTypeFromString(type));
+				}
+				String kernel = config.getKernel();
+				if (kernel!=null && !kernel.trim().equals("")) {
+					lc.setKernelId(kernel);
+				}
+				ReservationDescription result = ec2.runInstances(lc);
 				List<ReservationDescription.Instance> servers = result.getInstances();
 				if (servers.size() < numToLaunch) {
 					logger.warn("Failed to lanuch desired number of servers. ("
@@ -371,6 +408,9 @@ public class PoolManager implements Runnable {
 				}
 				if (x == 0) return;
 				Jec2 ec2 = new Jec2(awsAccessId, awsSecretKey);
+				if (!proxyHost.trim().equals("")) {
+					ec2.setProxyValues(proxyHost, proxyPort);
+				}
 				ec2.terminateInstances(ids);
 			}
 			for (Instance i : instances) {

@@ -1,5 +1,7 @@
 
-package com.directthought.lifeguard;
+package com.directthought.lifeguard.monitor;
+
+import com.directthought.lifeguard.PoolMonitor;
 
 // something dirt simple to test this spring bean
 public class StderrPoolMonitor implements PoolMonitor {

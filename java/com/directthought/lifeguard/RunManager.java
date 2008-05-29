@@ -21,6 +21,9 @@ import com.xerox.amazonws.common.JAXBuddy;
 
 import com.directthought.lifeguard.jaxb.PoolConfig;
 
+/**
+ * Runs lifeguard from a command-line context.
+ */
 public class RunManager {
 	private static Log logger = LogFactory.getLog(RunManager.class);
 
