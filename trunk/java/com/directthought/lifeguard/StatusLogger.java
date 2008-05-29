@@ -25,6 +25,8 @@ public class StatusLogger implements Runnable {
 	private String queuePrefix;
 	private String statusQueueName;
 	private StatusSaver saver;
+	private String proxyHost;
+	private int proxyPort;
 	private boolean keepRunning = true;
 
 	public StatusLogger() {
@@ -50,10 +52,27 @@ public class StatusLogger implements Runnable {
 		this.saver = saver;
 	}
 
+	public void setProxyHost(String host) {
+		proxyHost = host;
+	}
+
+	public void setProxyPort(String port) {
+		if (!port.trim().equals("")) {
+			try {
+				proxyPort = Integer.parseInt(port);
+			} catch (NumberFormatException ex) {
+				logger.error("Could not parse proxy port!", ex);
+			}
+		}
+	}
+
 	public void run() {
 		try {
 			// connect to queues
 			QueueService qs = new QueueService(accessId, secretKey);
+			if (!proxyHost.trim().equals("")) {
+				qs.setProxyValues(proxyHost, proxyPort);
+			}
 			MessageQueue workStatusQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+statusQueueName);
 			while (keepRunning) {
 				Message [] msgs = null;

@@ -3,4 +3,5 @@
 	<PoolStatusQueue>poolStatusTextToPdf</PoolStatusQueue>
 	<ServiceWorkQueue>texttopdf-input</ServiceWorkQueue>
 	<WorkStatusQueue>workStatus-input</WorkStatusQueue>
+	<TempDirectory>d:/work/dotech/lifeguard/tempdir</TempDirectory>
 </ServiceConfig>

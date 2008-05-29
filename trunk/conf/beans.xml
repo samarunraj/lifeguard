@@ -11,11 +11,19 @@
 		<property name="poolMonitor"><ref bean="monitor"/></property>
 		<property name="receiveCount" value="20"/>
 		<property name="idleBumpInterval" value="120000"/>
-		<property name="noLaunch" value="false"/>
 		<property name="keypairName" value="${aws.queuePrefix}-keypair"/>
+		<property name="noLaunch" value="false"/>
 		<property name="minimumLifetimeInMinutes" value="55"/>
+		<property name="proxyHost" value="${proxy.host}"/>
+		<property name="proxyPort" value="${proxy.port}"/>
 	</bean>
-	<bean id="monitor" class="com.directthought.lifeguard.StderrPoolMonitor" singleton="false"/>
+	<bean id="monitor" class="com.directthought.lifeguard.monitor.PoolStatusCollector" singleton="false">
+		<property name="dataManager"><ref bean="datamanager"/></property>
+	</bean>
+	<bean id="datamanager" class="com.directthought.lifeguard.monitor.StatusCollectorManager" singleton="true"/>
+	<!--
+	<bean id="monitor" class="com.directthought.lifeguard.monitor.StderrPoolMonitor" singleton="false"/>
+	-->
 	<!-- This is used when not launching real server, but to simulate state from servers
 	<bean id="monitor" class="SimulateServers" singleton="false">
 		<property name="accessId" value="${aws.accessId}"/>
@@ -29,6 +37,8 @@
 		<property name="queuePrefix" value="${aws.queuePrefix}"/>
 		<property name="statusQueueName" value="workStatus-input"/>
 		<property name="statusSaver"><ref bean="statussaver"/></property>
+		<property name="proxyHost" value="${proxy.host}"/>
+		<property name="proxyPort" value="${proxy.port}"/>
 	</bean>
 	<bean id="statussaver" class="com.directthought.lifeguard.status.CSVLogger" singleton="false">
 		<property name="outputFile" value="workstatus.csv"/>

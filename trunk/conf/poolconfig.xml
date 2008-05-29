@@ -57,4 +57,18 @@
 		<QueueSizeFactor>25</QueueSizeFactor>
 		<FindExistingServers>false</FindExistingServers>
 	</ServicePool>
+	<ServicePool>
+		<ServiceName>Ghostscript</ServiceName>
+		<ServiceAMI>ami-f854b191</ServiceAMI>
+		<PoolStatusQueue>poolStatusGhostscript</PoolStatusQueue>
+		<ServiceWorkQueue>ghostscript-input</ServiceWorkQueue>
+		<RampUpInterval>1</RampUpInterval>
+		<RampUpDelay>240</RampUpDelay>
+		<RampDownInterval>1</RampDownInterval>
+		<RampDownDelay>480</RampDownDelay>
+		<MinSize>0</MinSize>
+		<MaxSize>10</MaxSize>
+		<QueueSizeFactor>25</QueueSizeFactor>
+		<FindExistingServers>false</FindExistingServers>
+	</ServicePool>
 </PoolConfig>
