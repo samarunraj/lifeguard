@@ -58,10 +58,15 @@ public class MessageHelper {
 		ret.setBatch(wr.getBatch());
 		ret.setServiceName(wr.getServiceName());
 		ret.setInputBucket(wr.getInputBucket());
-		ret.setInput(wr.getInput());
+		FileRef ref = of.createFileRef();
+		ref.setKey(wr.getInput().getKey());
+		ref.setType(wr.getInput().getType());
+		ref.setLocation(wr.getInput().getLocation());
+		ret.setInput(ref);
+		ret.setOutputBucket(wr.getOutputBucket());
 		if (outFiles != null) {
 			for (MetaFile file : outFiles) {
-				FileRef ref = of.createFileRef();
+				ref = of.createFileRef();
 				ref.setKey(file.key);
 				ref.setType(file.mimeType);
 				ref.setLocation("S3");
