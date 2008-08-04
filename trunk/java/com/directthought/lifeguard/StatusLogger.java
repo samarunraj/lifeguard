@@ -95,7 +95,10 @@ public class StatusLogger implements Runnable {
 					}
 					workStatusQueue.deleteMessage(msg);
 				}
-				try { Thread.sleep(5000); } catch (InterruptedException iex) { }
+				// sleep, but only if there weren't messages to read
+				if (msgs == null || msgs.length == 0) {
+					try { Thread.sleep(5000); } catch (InterruptedException iex) { }
+				}
 			}
 		} catch (Throwable t) {
 			logger.error("Something unexpected happened in the status logger", t);
