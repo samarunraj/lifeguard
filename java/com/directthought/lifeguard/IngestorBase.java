@@ -74,7 +74,7 @@ public abstract class IngestorBase {
 
 		// connect to queues
 		QueueService qs = new QueueService(awsAccessId, awsSecretKey);
-		qs.setProxyValues("trivia.wrc.xerox.com", 8080);
+//		qs.setProxyValues("trivia.wrc.xerox.com", 8080);
 		MessageQueue statusQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+statusQueueName);
 		MessageQueue workQueue = QueueUtil.getQueueOrElse(qs,
 										queuePrefix+workflow.getServices().get(0).getWorkQueue());
