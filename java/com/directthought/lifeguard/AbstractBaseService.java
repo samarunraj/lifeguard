@@ -182,6 +182,7 @@ public abstract class AbstractBaseService implements Runnable {
 							obj = new S3Object(outBucket, file.key);
 							obj.setDataInputFile(file.file);
 							obj.setContentLength(file.file.length());
+							obj.setContentType(file.mimeType);
 							obj = s3.putObject(outBucket, obj);
 							obj.closeDataInputStream();
 						}
