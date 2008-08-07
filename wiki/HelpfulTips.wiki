@@ -1,0 +1,5 @@
+#Little things that are hard to document
+
+= Tips and Tricks =
+
+If you want to override the S3 output key from within your service, simply set the key property on the MetaFile object you return from the service's executeService() method. The default is to use the output file's MD5 hash as the object key.
