@@ -1,6 +1,7 @@
 
 package com.directthought.lifeguard;
 
+import java.math.BigInteger;
 import java.util.GregorianCalendar;
 import java.util.List;
 
@@ -10,7 +11,6 @@ import javax.xml.datatype.DatatypeFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.directthought.lifeguard.AbstractBaseService.MetaFile;
 import com.directthought.lifeguard.jaxb.FileRef;
 import com.directthought.lifeguard.jaxb.InstanceStatus;
 import com.directthought.lifeguard.jaxb.ObjectFactory;
@@ -24,16 +24,20 @@ public class MessageHelper {
 	private static DatatypeFactory df = null;
 
 	public static WorkStatus createIngestStatus(WorkRequest wr,
-						String inputFile, long startTime, long endTime, String instance) {
+						MetaFile input, long startTime, long endTime, String instance) {
 		WorkStatus ret = of.createWorkStatus();
 		ret.setProject(wr.getProject());
 		ret.setBatch(wr.getBatch());
 		ret.setServiceName(wr.getServiceName());
 		ret.setInputBucket(wr.getInputBucket());
 		FileRef ref = of.createFileRef();
-		ref.setKey("");
-		ref.setType("");
-		ref.setLocation(inputFile);
+		if (input.file == null) {
+			ref.setKey(input.key);
+			ref.setType(input.mimeType);
+		}
+		else {
+			ref.setLocation(input.file.getName());
+		}
 		ret.setInput(ref);
 		ret.setOutputBucket(wr.getOutputBucket());
 		ret.getOutputs().add(wr.getInput());
@@ -49,6 +53,7 @@ public class MessageHelper {
 
 		return ret;
 	}
+
 	// TODO: refactor... 
 
 	public static WorkStatus createServiceStatus(WorkRequest wr,
@@ -87,11 +92,11 @@ public class MessageHelper {
 		return ret;
 	}
 
-	public static InstanceStatus createInstanceStatus(String instanceId, boolean busy, long interval) {
+	public static InstanceStatus createInstanceStatus(String instanceId, boolean busy, int dutyCycle) {
 		InstanceStatus ret = of.createInstanceStatus();
 		ret.setInstanceId(instanceId);
 		ret.setState(busy?"busy":"idle");
-		ret.setLastInterval(getDataFactory().newDuration(interval));
+		ret.setDutyCycle(new BigInteger(""+dutyCycle));
 		GregorianCalendar gc = new GregorianCalendar();
 		gc.setTimeInMillis(System.currentTimeMillis());
 		ret.setTimestamp(getDataFactory().newXMLGregorianCalendar(gc));

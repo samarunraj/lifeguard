@@ -37,7 +37,7 @@ public class FileIngestor extends IngestorBase {
 		// load workflow
 		Workflow workflow = JAXBuddy.deserializeXMLStream(Workflow.class,
 											new FileInputStream(args[4]));
-
+		logger.debug("using bucket :"+args[3]);
 		FileIngestor ingestor = new FileIngestor(
 							(String)props.get("aws.accessId"), (String)props.get("aws.secretKey"),
 							(String)props.get("aws.queuePrefix"),
@@ -48,6 +48,6 @@ public class FileIngestor extends IngestorBase {
 		for (int i=5; i<args.length; i++) {
 			files.add(new File(args[i]));
 		}
-		ingestor.ingest(files);
+		ingestor.ingestFiles(files);
 	}
 }

@@ -71,6 +71,7 @@
 				<xs:element name="ServiceWorkQueue" type="xs:string" minOccurs="1" maxOccurs="1"/>
 				<xs:element name="WorkStatusQueue" type="xs:string" minOccurs="1" maxOccurs="1"/>
 				<xs:element name="TempDirectory" type="xs:string" minOccurs="0" maxOccurs="1"/>
+				<xs:element name="InstanceIdOverride" type="xs:string" minOccurs="0" maxOccurs="1"/>
 				<xs:element name="Parameter" type="com:paramDefType" minOccurs="0" maxOccurs="unbounded"/>
 			</xs:sequence>
 		</xs:complexType>

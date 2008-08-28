@@ -4,7 +4,10 @@ package com.directthought.lifeguard;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 import javax.activation.MimetypesFileTypeMap;
 import javax.xml.bind.JAXBException;
@@ -30,6 +33,7 @@ import com.directthought.lifeguard.jaxb.Service;
 import com.directthought.lifeguard.jaxb.Step;
 import com.directthought.lifeguard.jaxb.Workflow;
 import com.directthought.lifeguard.jaxb.WorkRequest;
+import com.directthought.lifeguard.jaxb.WorkRequest.OutputKey;
 import com.directthought.lifeguard.jaxb.WorkStatus;
 import com.directthought.lifeguard.util.MD5Util;
 import com.directthought.lifeguard.util.QueueUtil;
@@ -51,6 +55,10 @@ public abstract class IngestorBase {
 	private String statusQueueName;
 	private Workflow workflow;
 
+	// proxy values to pass onto typica and jets3t
+	private String proxyHost;
+	private int proxyPort;
+
 	/**
 	 *
 	 */
@@ -69,12 +77,63 @@ public abstract class IngestorBase {
 		this.workflow = workflow;
 	}
 
-	public void ingest(List<File> files) {
+	public void setProxyValues(String proxyHost, int proxyPort) {
+		this.proxyHost = proxyHost;
+		this.proxyPort = proxyPort;
+	}
+
+	/**
+	 * This method takes a list of properties submits work requests for each. This is designed
+	 * for workflows that don't require an initial input file, rather some properties unique to
+	 * each request define the inputs.
+	 *
+	 * @param properties the list of properties to use
+	 */
+	public void ingestProperties(List<Properties> properties) {
+		ingest(null, properties, null);
+	}
+
+	/**
+	 * This method takes a list of keys of objects in S3 and submits work requests for each.
+	 *
+	 * @param files the list of files to ingest
+	 */
+	public void ingestKeys(List<MetaFile> keys) {
+		ingest(keys, null, null);
+	}
+
+	/**
+	 * This method takes a list of keys of objects in S3 and submits work requests for each.
+	 *
+	 * @param files the list of files to ingest
+	 * @param outputKeys a map of keys,mimeTypes that specify keys to use to store output
+	 */
+	public void ingestKeys(List<MetaFile> keys, Map<String, String> outputKeys) {
+		ingest(keys, null, outputKeys);
+	}
+
+	/**
+	 * This method takes a list of files, moves the files to S3 and submits work requests for each.
+	 *
+	 * @param files the list of files to ingest
+	 */
+	public void ingestFiles(List<File> files) {
+		ArrayList<MetaFile> mFiles = new ArrayList<MetaFile>();
+		for (File file : files) {
+			String type = new MimetypesFileTypeMap().getContentType(file);
+			mFiles.add(new MetaFile(file, type));
+		}
+		ingest(mFiles, null, null);
+	}
+
+	protected void ingest(List<MetaFile> files, List<Properties> properties, Map<String, String> outputKeys) {
 		ObjectFactory of = new ObjectFactory();
 
 		// connect to queues
 		QueueService qs = new QueueService(awsAccessId, awsSecretKey);
-//		qs.setProxyValues("trivia.wrc.xerox.com", 8080);
+		if (proxyHost != null && !proxyHost.equals("")) {
+			qs.setProxyValues(proxyHost, proxyPort);
+		}
 		MessageQueue statusQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+statusQueueName);
 		MessageQueue workQueue = QueueUtil.getQueueOrElse(qs,
 										queuePrefix+workflow.getServices().get(0).getWorkQueue());
@@ -87,6 +146,15 @@ public abstract class IngestorBase {
 			wr.setServiceName("ingestor");
 			wr.setInputBucket(inputBucket);
 			wr.setOutputBucket(outputBucket);
+			if (outputKeys != null) {
+				List<OutputKey> tmp = wr.getOutputKeies();
+				for (String key : outputKeys.keySet()) {
+					OutputKey ok = of.createWorkRequestOutputKey();
+					ok.setValue(key);
+					ok.setType(outputKeys.get(key));
+					tmp.add(ok);
+				}
+			}
 			List<ParamType> wrParams = wr.getParams();
 			// build pipeline steps
 			Step step = of.createStep();
@@ -114,34 +182,41 @@ public abstract class IngestorBase {
 			}
 			step.setNextStep(null);	// null out last step, filled in for next loop iteration
 
-			for (File file : files) {
+			for (MetaFile file : files) {
 				long startTime = System.currentTimeMillis();
-				// put file in S3 input bucket
-				String s3Key = MD5Util.md5Sum(new FileInputStream(file));
-				RestS3Service s3 = new RestS3Service(new AWSCredentials(awsAccessId, awsSecretKey));
-				S3Object obj = new S3Object(new S3Bucket(inputBucket), s3Key);
-				obj.setDataInputFile(file);
-				obj.setContentLength(file.length());
-				obj = s3.putObject(inputBucket, obj);
+				if (file.file != null) {
+					// put file in S3 input bucket
+					String s3Key = MD5Util.md5Sum(new FileInputStream(file.file));
+					RestS3Service s3 = new RestS3Service(new AWSCredentials(awsAccessId, awsSecretKey));
+					if (proxyHost != null && !proxyHost.equals("")) {
+						s3.initHttpProxy(proxyHost, proxyPort);
+					}
+					S3Object obj = new S3Object(new S3Bucket(inputBucket), s3Key);
+					obj.setDataInputFile(file.file);
+					obj.setContentLength(file.file.length());
+					obj.setContentType(file.mimeType);
+					obj = s3.putObject(inputBucket, obj);
+					file.key = s3Key;
+				}
 				// send work request message
 				FileRef ref = of.createFileRef();
-				ref.setKey(s3Key);
-				ref.setType(new MimetypesFileTypeMap().getContentType(file));
+				ref.setKey(file.key);
+				ref.setType(file.mimeType);
 				ref.setLocation("");
 				wr.setInput(ref);
 				long endTime = System.currentTimeMillis();
 				String message = JAXBuddy.serializeXMLString(WorkRequest.class, wr);
 				QueueUtil.sendMessageForSure(workQueue, message);
 				// send work status message
-				WorkStatus ws = MessageHelper.createIngestStatus(wr, file.getName(), startTime, endTime, "localhost");
+				WorkStatus ws = MessageHelper.createIngestStatus(wr, file, startTime, endTime, "localhost");
 				message = JAXBuddy.serializeXMLString(WorkStatus.class, ws);
 				QueueUtil.sendMessageForSure(statusQueue, message);
-				logger.debug("ingested file : "+file.getName());
+				logger.debug("ingested : "+((file.file==null)?file.key:file.file.getName()));
 			}
 		} catch (IOException ex) {
-			logger.error(ex);
+			logger.error("Problem ingesting! "+ex.getMessage(), ex);
 		} catch (Exception ex) {
-			logger.error(ex);
+			logger.error("Problem ingesting! "+ex.getMessage(), ex);
 		}
 	}
 }

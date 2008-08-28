@@ -5,10 +5,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.json.JSONException;
-
 import com.directthought.lifeguard.PoolMonitor;
 
 public class PoolStatusCollector implements PoolMonitor {
@@ -24,16 +20,16 @@ public class PoolStatusCollector implements PoolMonitor {
 		runningHistory = new ArrayList<String>();
 		busyHistory = new ArrayList<String>();
 		// the code below creates fake data for use in testing
-		new HistoryMaker().start();
-		eventLog.add(new PoolEvent(EventType.instanceStarted, "i-abcdefg"));
-			try { Thread.sleep(1000); } catch (InterruptedException ex) {}
-		eventLog.add(new PoolEvent(EventType.instanceBusy, "i-abcdefg"));
-			try { Thread.sleep(1000); } catch (InterruptedException ex) {}
-		eventLog.add(new PoolEvent(EventType.instanceIdle, "i-abcdefg"));
-			try { Thread.sleep(1000); } catch (InterruptedException ex) {}
-		eventLog.add(new PoolEvent(EventType.instanceBusy, "i-abcdefg"));
-			try { Thread.sleep(1000); } catch (InterruptedException ex) {}
-		eventLog.add(new PoolEvent(EventType.instanceIdle, "i-abcdefg"));
+//		new HistoryMaker().start();
+//		eventLog.add(new PoolEvent(EventType.instanceStarted, "i-abcdefg"));
+//			try { Thread.sleep(1000); } catch (InterruptedException ex) {}
+//		eventLog.add(new PoolEvent(EventType.instanceBusy, "i-abcdefg"));
+//			try { Thread.sleep(1000); } catch (InterruptedException ex) {}
+//		eventLog.add(new PoolEvent(EventType.instanceIdle, "i-abcdefg"));
+//			try { Thread.sleep(1000); } catch (InterruptedException ex) {}
+//		eventLog.add(new PoolEvent(EventType.instanceBusy, "i-abcdefg"));
+//			try { Thread.sleep(1000); } catch (InterruptedException ex) {}
+//		eventLog.add(new PoolEvent(EventType.instanceIdle, "i-abcdefg"));
 	}
 
 	public void setDataManager(StatusCollectorManager manager) {
@@ -70,12 +66,14 @@ public class PoolStatusCollector implements PoolMonitor {
 		System.err.println(">>>>>>>>>>> instance busy : "+id);
 		eventLog.add(new PoolEvent(EventType.instanceBusy, id));
 		serversBusy++;
+		if (serversBusy > serversRunning) serversBusy = serversRunning;
 	}
 
 	public void instanceIdle(String id) {
 		System.err.println(">>>>>>>>>>> instance idle : "+id);
 		eventLog.add(new PoolEvent(EventType.instanceIdle, id));
 		serversBusy--;
+		if (serversBusy < 0) serversBusy = 0;
 	}
 
 	public String getServersRunning() {
@@ -96,29 +94,6 @@ public class PoolStatusCollector implements PoolMonitor {
 
 	public ArrayList<String> getBusyHistory() {
 		return busyHistory;
-	}
-
-	public String toJSONString() throws JSONException {
-		JSONObject jsonObj = new JSONObject();
-		jsonObj.put("serviceName", this.serviceName);
-		jsonObj.put("serversRunning", ""+this.serversRunning);
-		jsonObj.put("serversBusy", ""+this.serversBusy);
-
-		JSONArray jsonItems = new JSONArray();
-		for (PoolEvent evt : this.eventLog) {
-			jsonItems.put(evt.toJSONObject());
-		}
-		jsonObj.put("eventLog", jsonItems);
-
-/*
-		jsonItems = new JSONArray();
-		for (Integer evt : this.runningHistory) {
-			jsonItems.put(evt.toJSONObject());
-		}
-		*/
-		jsonObj.put("runningHistory", new JSONArray(this.runningHistory));
-		jsonObj.put("busyHistory", new JSONArray(this.busyHistory));
-		return jsonObj.toString();
 	}
 
 	public enum EventType {
@@ -159,14 +134,6 @@ public class PoolStatusCollector implements PoolMonitor {
 
 		public Date getTimestamp() {
 			return timestamp;
-		}
-
-		public JSONObject toJSONObject() throws JSONException {
-			JSONObject jsonObj = new JSONObject();
-			jsonObj.put("eventType", this.type.label());
-			jsonObj.put("instanceId", this.instanceId);
-			jsonObj.put("timestamp", this.timestamp);
-			return jsonObj;
 		}
 	}
 

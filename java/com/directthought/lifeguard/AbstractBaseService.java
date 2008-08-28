@@ -9,8 +9,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.File;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.List;
 
 import javax.xml.bind.JAXBException;
@@ -35,6 +37,7 @@ import com.directthought.lifeguard.jaxb.InstanceStatus;
 import com.directthought.lifeguard.jaxb.ServiceConfig;
 import com.directthought.lifeguard.jaxb.Step;
 import com.directthought.lifeguard.jaxb.WorkRequest;
+import com.directthought.lifeguard.jaxb.WorkRequest.OutputKey;
 import com.directthought.lifeguard.jaxb.WorkStatus;
 import com.directthought.lifeguard.util.MD5Util;
 import com.directthought.lifeguard.util.QueueUtil;
@@ -55,38 +58,33 @@ public abstract class AbstractBaseService implements Runnable {
 		this.accessId = accessId;
 		this.secretKey = secretKey;
 		this.queuePrefix = queuePrefix;
-		int iter = 0;
-		while (true) {
-			try {
-				URL url = new URL("http://169.254.169.254/1.0/meta-data/instance-id");
-				instanceId = new BufferedReader(new InputStreamReader(url.openStream())).readLine();
-				break;
-			} catch (IOException ex) {
-				if (iter == 5) {
-					logger.debug("Problem getting instance data, retries exhausted...");
+		String id = config.getInstanceIdOverride();
+		if (id != null && !id.equals("")) {
+			instanceId = id;
+		}
+		else {
+			int iter = 0;
+			while (true) {
+				try {
+					URL url = new URL("http://169.254.169.254/1.0/meta-data/instance-id");
+					instanceId = new BufferedReader(new InputStreamReader(url.openStream())).readLine();
 					break;
+				} catch (IOException ex) {
+					if (iter == 5) {
+						logger.debug("Problem getting instance data, retries exhausted...");
+						break;
+					}
+					else {
+						logger.debug("Problem getting instance data, retrying...");
+						try { Thread.sleep((iter+1)*1000); } catch (InterruptedException iex) {}
+					}
 				}
-				else {
-					logger.debug("Problem getting instance data, retrying...");
-					try { Thread.sleep((iter+1)*1000); } catch (InterruptedException iex) {}
-				}
+				iter++;
 			}
-			iter++;
 		}
 	}
 
 	public abstract List<MetaFile> executeService(File inputFile, WorkRequest request) throws ServiceException;
-
-	public class MetaFile {
-		public File file;
-		public String mimeType;
-		protected String key;
-
-		public MetaFile(File file, String mimeType) {
-			this.file = file;
-			this.mimeType = mimeType;
-		}
-	}
 
 	public String getServiceName() {
 		return config.getServiceName();
@@ -106,6 +104,9 @@ public abstract class AbstractBaseService implements Runnable {
 						QueueUtil.getQueueOrElse(qs, queuePrefix+config.getServiceWorkQueue());
 			MessageQueue workStatusQueue =
 						QueueUtil.getQueueOrElse(qs, queuePrefix+config.getWorkStatusQueue());
+
+			new StatusSender(poolStatusQueue).start();
+
 			File tmpDir = new File(".");
 			String dirName = config.getTempDirectory();
 			if (dirName != null && !dirName.equals("")) {
@@ -140,7 +141,7 @@ public abstract class AbstractBaseService implements Runnable {
 						msgWatcher = new MessageWatcher(workQueue, msg);
 						msgWatcher.start();
 					}
-					sendPoolStatus(poolStatusQueue, true);
+					setPoolStatus(true);
 					// parse work
 					WorkRequest request = null;
 					long startTime = System.currentTimeMillis();
@@ -152,34 +153,74 @@ public abstract class AbstractBaseService implements Runnable {
 						request.setServiceName(getServiceName());
 						// pull file from S3
 						RestS3Service s3 = new RestS3Service(new AWSCredentials(accessId, secretKey));
-						S3Bucket inBucket = new S3Bucket(request.getInputBucket());
+						// check for input required
+						String bucketName = request.getInputBucket();
 						FileRef inFile = request.getInput();
-						S3Object obj = s3.getObject(inBucket, inFile.getKey());
-						InputStream iStr = obj.getDataInputStream();
-						// should convert from mime-type to extension
-						inputFile = File.createTempFile("lg-", ".tmp", tmpDir);
-						byte [] buf = new byte[64*1024];	// 64k i/o buffer
-						FileOutputStream oStr = new FileOutputStream(inputFile);
-						int count = iStr.read(buf);
-						while (count != -1) {
-							if (count > 0) {
-								oStr.write(buf, 0, count);
+						if ((bucketName != null && !bucketName.equals("")) && (inFile != null)) {
+							S3Bucket inBucket = new S3Bucket(bucketName);
+							S3Object obj = s3.getObject(inBucket, inFile.getKey());
+							InputStream iStr = obj.getDataInputStream();
+							// should convert from mime-type to extension
+							inputFile = File.createTempFile("lg-", ".tmp", tmpDir);
+							byte [] buf = new byte[64*1024];	// 64k i/o buffer
+							FileOutputStream oStr = new FileOutputStream(inputFile);
+							int count = iStr.read(buf);
+							while (count != -1) {
+								if (count > 0) {
+									oStr.write(buf, 0, count);
+								}
+								count = iStr.read(buf);
 							}
-							count = iStr.read(buf);
+							oStr.close();
 						}
-						oStr.close();
 						// call executeService()
 						logger.debug("About to run service");
-							List<MetaFile> results = executeService(inputFile, request);
-						inputFile.delete();
-						logger.debug("service produced "+results.size()+" results");
+						List<MetaFile> results = executeService(inputFile, request);
+						if (inputFile != null) {
+							inputFile.delete();
+						}
+						logger.debug("service produced "+((results==null)?0:results.size())+" results");
+						// see if we work request specified output keys
+						List<OutputKey> keys = request.getOutputKeies(); // don't ask about the spelling.. jaxb did it
+						if (keys != null && keys.size() > 0) {	// see if there is a key to match the mimetype of this file
+							// see if there are multiples of any given type
+							int [] totals = new int[keys.size()];
+							Arrays.fill(totals, 0);
+							for (MetaFile file : results) {
+								for (int i=0; i<keys.size(); i++) {
+									OutputKey key = keys.get(i);
+									if (key.getType().equals(file.mimeType)) {
+										totals[i]++;
+									}
+								}
+							}
+							// now set the output keys
+							int [] counter = new int[keys.size()];
+							Arrays.fill(totals, 0);
+							for (MetaFile file : results) {
+								for (int i=0; i<keys.size(); i++) {
+									OutputKey key = keys.get(i);
+									if (key.getType().equals(file.mimeType)) {
+										if (totals[i] > 1) {
+											String k = key.getValue();
+											int idx = k.lastIndexOf('/')+1;
+											file.key = k.substring(0, idx) +
+														counter[i] + k.substring(idx);
+										}
+										else {
+											file.key = key.getValue();
+										}
+									}
+								}
+							}
+						}
 						// send results to S3
 						for (MetaFile file : results) {
 							if (file.key == null || file.key.trim().equals("")) {
 								file.key = MD5Util.md5Sum(new FileInputStream(file.file));
 							}
 							S3Bucket outBucket = new S3Bucket(request.getOutputBucket());
-							obj = new S3Object(outBucket, file.key);
+							S3Object obj = new S3Object(outBucket, file.key);
 							obj.setDataInputFile(file.file);
 							obj.setContentLength(file.file.length());
 							obj.setContentType(file.mimeType);
@@ -237,11 +278,13 @@ public abstract class AbstractBaseService implements Runnable {
 						inputFile = null;
 					}
 					workQueue.deleteMessage(msg);
-					sendPoolStatus(poolStatusQueue, false);
+					setPoolStatus(false);
 
 				// here's where we catch stuff that will cause a re-try of this later (keep it in Q)
+				} catch (SocketException ex) {
+					logger.error("Problem with communication with AWS!", ex);
 				} catch (SocketTimeoutException ex) {
-					logger.error("Problem with communication with S3!", ex);
+					logger.error("Problem with communication with AWS!", ex);
 				} catch (S3ServiceException ex) {
 					logger.error("Problem with S3!", ex);
 				}
@@ -251,32 +294,51 @@ public abstract class AbstractBaseService implements Runnable {
 		}
 	}
 
-	private long lastBusySend = 0;
-	private long lastIdleSend = 0;
-	// This method will send sparse status. It will just send the most recent status if no
-	// status has been sent in the last minute.
-	private void sendPoolStatus(MessageQueue queue, boolean busy) {
-		try {
-			long now = System.currentTimeMillis();
-			if ((busy && ((now-lastBusySend) > MIN_STATUS_INTERVAL)) ||
-				(!busy && ((now-lastIdleSend) > MIN_STATUS_INTERVAL))) { 
+	private boolean busy;
+	private long lastBusyInterval = 0;
+	private long lastIdleInterval = 0;
 
-				long interval = now - lastTime;
-				InstanceStatus status = MessageHelper.createInstanceStatus(instanceId, busy, interval);
-				String message = JAXBuddy.serializeXMLString(InstanceStatus.class, status);
-				QueueUtil.sendMessageForSure(queue, message);
-				if (busy) {
-					lastBusySend = now;
-				}
-				else {
-					lastIdleSend = now;
+	private void setPoolStatus(boolean busy) {
+		long now = System.currentTimeMillis();
+		this.busy = busy;
+		if (busy) {
+			lastIdleInterval = now - lastTime;
+		}
+		else {
+			lastIdleInterval = now - lastTime;
+		}
+		lastTime = now;
+	}
+
+	class StatusSender extends Thread {
+		MessageQueue queue;
+
+		StatusSender(MessageQueue queue) {
+			this.queue = queue;
+		}
+
+		public void run() {
+			while (true) {
+				try {
+					sendPoolStatus(); 
+					try { Thread.sleep(30000); } catch (InterruptedException ex) {}
+				} catch (Exception ex) {
+					logger.error("Problem while sending status, retrying", ex);
 				}
 			}
-			lastTime = System.currentTimeMillis();
-		} catch (JAXBException ex) {
-			logger.error("Problem serializing instance status!?", ex);
-		} catch (IOException ex) {
-			logger.error("Problem serializing instance status!?", ex);
+		}
+
+		private void sendPoolStatus() {
+			try {
+				int dutyCycle = (int)((lastBusyInterval / (float)(lastIdleInterval + lastBusyInterval)) * 100);
+				InstanceStatus status = MessageHelper.createInstanceStatus(instanceId, busy, dutyCycle);
+				String message = JAXBuddy.serializeXMLString(InstanceStatus.class, status);
+				QueueUtil.sendMessageForSure(queue, message);
+			} catch (JAXBException ex) {
+				logger.error("Problem serializing instance status!?", ex);
+			} catch (IOException ex) {
+				logger.error("Problem serializing instance status!?", ex);
+			}
 		}
 	}
 

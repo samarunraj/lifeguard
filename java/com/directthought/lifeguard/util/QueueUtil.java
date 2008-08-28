@@ -15,6 +15,7 @@ public class QueueUtil {
 		MessageQueue ret = null;
 		while (ret == null) {
 			try {
+				logger.debug("trying...");
 				ret = qs.getOrCreateMessageQueue(queueName);
 			} catch (SQSException ex) {
 				logger.error("Error access message queue, Retrying.", ex);

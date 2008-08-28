@@ -184,6 +184,7 @@
 			<fileset file="*.sh"/>
             <fileset dir="${lifeguard}" includes="conf/*"/>
             <fileset dir="${lifeguard}" includes="lib/*"/>
+            <fileset dir="${lifeguard}" includes="webapp/**/*"/>
 			<fileset dir="${lifeguard.build}">
 				<include name="apidocs/**/*"/>
 			</fileset>
