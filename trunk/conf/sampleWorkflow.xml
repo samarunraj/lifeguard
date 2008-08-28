@@ -1,19 +1,19 @@
 <Workflow xmlns="http://lifeguard-ws.directthought.com/doc/2007-11-20/">
-<!--
 	<Service>
-		<Name>TextLineSplitter</Name>
-		<WorkQueue>textsplit-input</WorkQueue>
+		<Name>TextToPDF</Name>
+		<WorkQueue>texttopdf-input</WorkQueue>
 		<InputType>text/plain</InputType>
-		<OutputType>text/plain</OutputType>
+		<OutputType>application/pdf</OutputType>
 	</Service>
-	-->
+<!--
 	<Service>
 		<Name>Ghostscript</Name>
 		<WorkQueue>ghostscript-input</WorkQueue>
 		<InputType>application/pdf</InputType>
 		<OutputType>image/tiff</OutputType>
-		<Param name='color'>RGB</Param>
+		<Param name='color'>MONO</Param>
 	</Service>
+	-->
 <!--
 	<Service>
 		<Name>Transcode</Name>

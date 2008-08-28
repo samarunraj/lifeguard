@@ -28,6 +28,7 @@
 		<QueueSizeFactor>10</QueueSizeFactor>
 		<FindExistingServers>false</FindExistingServers>
 	</ServicePool>
+-->
 	<ServicePool>
 		<ServiceName>TextToPdf</ServiceName>
 		<ServiceAMI>ami-30e40159</ServiceAMI>
@@ -42,7 +43,7 @@
 		<QueueSizeFactor>50</QueueSizeFactor>
 		<FindExistingServers>false</FindExistingServers>
 	</ServicePool>
--->
+	<!--
 	<ServicePool>
 		<ServiceName>Transcode</ServiceName>
 		<ServiceAMI>ami-ca27c2a3</ServiceAMI>
@@ -53,13 +54,14 @@
 		<RampDownInterval>1</RampDownInterval>
 		<RampDownDelay>480</RampDownDelay>
 		<MinSize>0</MinSize>
-		<MaxSize>20</MaxSize>
+		<MaxSize>0</MaxSize>
 		<QueueSizeFactor>25</QueueSizeFactor>
 		<FindExistingServers>false</FindExistingServers>
 	</ServicePool>
 	<ServicePool>
 		<ServiceName>Ghostscript</ServiceName>
 		<ServiceAMI>ami-f854b191</ServiceAMI>
+		<InstanceType>c1.medium</InstanceType>
 		<PoolStatusQueue>poolStatusGhostscript</PoolStatusQueue>
 		<ServiceWorkQueue>ghostscript-input</ServiceWorkQueue>
 		<RampUpInterval>1</RampUpInterval>
@@ -69,6 +71,7 @@
 		<MinSize>0</MinSize>
 		<MaxSize>10</MaxSize>
 		<QueueSizeFactor>25</QueueSizeFactor>
-		<FindExistingServers>false</FindExistingServers>
+		<FindExistingServers>true</FindExistingServers>
 	</ServicePool>
+	-->
 </PoolConfig>

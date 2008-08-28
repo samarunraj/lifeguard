@@ -1,5 +1,5 @@
-lifeguard 0.2
-December 10, 2007
+lifeguard 0.3
+August 10, 2008
 
 http://code.google.com/p/lifeguard
 
@@ -12,6 +12,7 @@ lifeguard.jar  - the classes for this release
 conf/          - property files
 lib/           - supporting libraries
 apidocs/       - JavaDoc for this release
+webapp/        - files to support the lifeguard web gui
 ingest.sh      - script to invoke the FileIngestor
 poolManager.sh - script to run the pool manager
 

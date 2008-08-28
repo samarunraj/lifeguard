@@ -39,6 +39,7 @@ public class PoolManager implements Runnable {
 	protected PoolMonitor monitor;
 	protected int receiveCount = 20;
 	protected int idleBumpInterval = 120000;
+	protected long laggardLimit = 600000;
 	protected int minLifetimeInMins = 0;
 	protected String keypairName = "unknown-keypair";
 	protected boolean noLaunch = false;
@@ -87,6 +88,10 @@ public class PoolManager implements Runnable {
 		this.idleBumpInterval = idleBumpInterval;
 	}
 
+	public void setLaggardLimit(long laggardLimit) {
+		this.laggardLimit = laggardLimit;
+	}
+
 	public void setMinimumLifetimeInMinutes(int minLifetimeInMins) {
 		this.minLifetimeInMins = minLifetimeInMins;
 	}
@@ -129,28 +134,36 @@ public class PoolManager implements Runnable {
 			this.monitor.setWorkQueue(config.getServiceWorkQueue());
 		}
 		try {
+			logger.debug("mark 1");
 			// Find existing servers.
 			if (config.isFindExistingServers()) {
 				listInstances();
 			}
 
+			logger.debug("mark 2");
 			// fire up min servers first. They take a least 2 minutes to start up
 			int min = config.getMinSize();
 			if (min > instances.size()) {
 				launchInstances(min - instances.size());
 			}
+			logger.debug("mark 3 "+awsAccessId);
+			logger.debug("mark 3 "+awsSecretKey);
 			QueueService qs = new QueueService(awsAccessId, awsSecretKey);
 			if (!proxyHost.trim().equals("")) {
+				logger.debug("proxy being set");
 				qs.setProxyValues(proxyHost, proxyPort);
 			}
+			logger.debug("mark 4 "+queuePrefix+config.getPoolStatusQueue());
 			MessageQueue statusQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+config.getPoolStatusQueue());
+			logger.debug("mark 5");
 			MessageQueue workQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+config.getServiceWorkQueue());
 
+			logger.debug("mark 6");
 			long startBusyInterval = 0;	// used to track time pool has no idle capacity
 			long startIdleInterval = 0;	// used to track time pool has spare capacity
 
 			// now, loop forever, checking for busy status and checking work queue size
-			logger.info("Starting PoolManager for service : "+config.getServiceName());
+			logger.debug("Starting PoolManager for service : "+config.getServiceName());
 			while (keepRunning) {
 				Message [] msgs = new Message[0];
 				try {
@@ -171,24 +184,21 @@ public class PoolManager implements Runnable {
 							int idx = instances.indexOf(new Instance(id));
 							if (idx > -1) {
 								Instance i = instances.get(idx);
-								long interval =
-										status.getLastInterval().getTimeInMillis(new Date(0));
+								//long interval = status.getLastInterval().getTimeInMillis(new Date(0));
 								if (status.getState().equals("busy")) {
-									i.lastIdleInterval = interval;
 									if (this.monitor != null) {
 										monitor.instanceBusy(id);
 									}
 								}
 								else if (status.getState().equals("idle")) {
-									i.lastBusyInterval = interval;
 									if (this.monitor != null) {
 										monitor.instanceIdle(id);
 									}
 								}
 								else {
 								}
-								i.lastReportTime = System.currentTimeMillis();
-								i.updateLoad();
+								i.lastReportTime = status.getTimestamp().toGregorianCalendar().getTimeInMillis();
+								i.loadEstimate = status.getDutyCycle().intValue();
 							}
 							else {
 								logger.debug("ignoring message for instance not known");
@@ -204,17 +214,6 @@ public class PoolManager implements Runnable {
 						break;
 					}
 				}
-				// for servers that haven't reported recently, bump idle interval...
-				for (Instance i : instances) {
-					// if more than a minute (arbitrarily) has gone by without a report,
-					// increase the lastBusyInterval, and recalc the loadEstimate
-					if (i.lastReportTime < (System.currentTimeMillis()-idleBumpInterval)) {
-						i.lastIdleInterval += idleBumpInterval;
-						i.lastReportTime = System.currentTimeMillis();
-						i.updateLoad();
-					}
-				}
-
 				// calculate pool load average
 				int sum = 0;
 				for (Instance i : instances) {
@@ -299,6 +298,17 @@ public class PoolManager implements Runnable {
 				} catch (SQSException ex) {
 					logger.error("Error getting queue depth, Retrying.", ex);
 				}
+				// for servers that haven't reported recently, see if they are deliquent enough to
+				// terminate and replace
+				for (Instance i : instances) {
+					// if more than N minutes have gone by without a report, do the needful
+					if (i.lastReportTime < (System.currentTimeMillis()-laggardLimit)) {
+						logger.error("Instance "+i.id+" is being replaced");
+						terminateInstances(new Instance [] {i}, true);
+						launchInstances(1);
+					}
+				}
+
 //				logger.info("loop bottom");
 				try { Thread.sleep(secondsToSleep*1000); } catch (InterruptedException iex) { }
 			}
@@ -329,7 +339,7 @@ public class PoolManager implements Runnable {
 				if (i != null && i.getImageId().equals(config.getServiceAMI())
 				    && (i.getState().equals("pending") || i.getState().equals("running"))) {
 					logger.info("Found " + i.getState() + " instance: " + i.getInstanceId());
-					instances.add(new Instance(i.getInstanceId()));
+					instances.add(new Instance(i.getInstanceId(), i.getPrivateDnsName()));
 					if (this.monitor != null) {
 						monitor.instanceStarted(i.getInstanceId());
 					}
@@ -379,7 +389,7 @@ public class PoolManager implements Runnable {
 									+servers.size()+" instead of "+numToLaunch+")");
 				}
 				for (ReservationDescription.Instance s : servers) {
-					instances.add(new Instance(s.getInstanceId()));
+					instances.add(new Instance(s.getInstanceId(), s.getPrivateDnsName()));
 					if (this.monitor != null) {
 						monitor.instanceStarted(s.getInstanceId());
 					}
@@ -433,26 +443,27 @@ public class PoolManager implements Runnable {
 
 	private class Instance implements Comparable {
 		String id;
+		String hostName;
 		int loadEstimate;
 		long lastIdleInterval;	// last reported interval of idle-ness
 		long lastBusyInterval;	// last reported interval of busy-ness
 		long lastReportTime;
 		long startupTime;		// the time this instances was first started
+		int failCount;			// number of times ping failed
 
 		Instance(String id) {
+			this(id, null);
+		}
+
+		Instance(String id, String hostName) {
 			this.id = id;
+			this.hostName = hostName;
 			loadEstimate = 0;
-			lastIdleInterval = 0;
-			lastBusyInterval = 0;
 			lastReportTime = System.currentTimeMillis();
 			startupTime = System.currentTimeMillis();
+			failCount = 0;
 		}
 
-
-		void updateLoad() {
-			loadEstimate = (int)(lastBusyInterval /
-							(float)(lastIdleInterval+lastBusyInterval) * 100);
-		}
 
 		public boolean equals(Object o) {
 			return (id.equals(((Instance)o).id));

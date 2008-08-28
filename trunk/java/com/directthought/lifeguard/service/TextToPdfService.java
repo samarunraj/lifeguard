@@ -22,7 +22,7 @@ import com.lowagie.text.pdf.PdfString;
 import com.lowagie.text.pdf.PdfWriter;
 
 import com.directthought.lifeguard.AbstractBaseService;
-import com.directthought.lifeguard.AbstractBaseService.MetaFile;
+import com.directthought.lifeguard.MetaFile;
 import com.directthought.lifeguard.jaxb.WorkRequest;
 import com.directthought.lifeguard.jaxb.ServiceConfig;
 

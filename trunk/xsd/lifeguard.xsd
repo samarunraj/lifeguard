@@ -35,7 +35,7 @@
 						</xs:restriction>
 					</xs:simpleType>
 				</xs:element>
-				<xs:element name="LastInterval" type="xs:duration" minOccurs="1" maxOccurs="1"/>
+				<xs:element name="DutyCycle" type="xs:integer" minOccurs="1" maxOccurs="1"/>
 				<xs:element name="Timestamp" type="xs:dateTime" minOccurs="1" maxOccurs="1"/>
 			</xs:sequence>
 		</xs:complexType>
@@ -49,9 +49,18 @@
 				<xs:element name="Project" type="xs:string" minOccurs="1" maxOccurs="1"/>
 				<xs:element name="Batch" type="xs:string" minOccurs="1" maxOccurs="1"/>
 				<xs:element name="ServiceName" type="xs:string" minOccurs="1" maxOccurs="1"/>
-				<xs:element name="InputBucket" type="xs:string" minOccurs="1" maxOccurs="1"/>
+				<xs:element name="InputBucket" type="xs:string" minOccurs="0" maxOccurs="1"/>
 				<xs:element name="OutputBucket" type="xs:string" minOccurs="1" maxOccurs="1"/>
-				<xs:element name="Input" type="tns:fileRef" minOccurs="1" maxOccurs="1"/>
+				<xs:element name="Input" type="tns:fileRef" minOccurs="0" maxOccurs="1"/>
+				<xs:element name="OutputKey" minOccurs="0" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:simpleContent>
+							<xs:extension base="xs:string">
+								<xs:attribute name="type" type="com:mimeType"/>
+							</xs:extension>
+						</xs:simpleContent>
+					</xs:complexType>
+				</xs:element>
 				<xs:element name="NextStep" type="tns:step" minOccurs="0" maxOccurs="1"/>
 				<xs:element name="Param" type="com:paramType" minOccurs="0" maxOccurs="unbounded"/>
 			</xs:sequence>

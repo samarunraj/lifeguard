@@ -12,6 +12,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.directthought.lifeguard.AbstractBaseService;
+import com.directthought.lifeguard.MetaFile;
 import com.directthought.lifeguard.ServiceException;
 import com.directthought.lifeguard.jaxb.ParamType;
 import com.directthought.lifeguard.jaxb.ServiceConfig;

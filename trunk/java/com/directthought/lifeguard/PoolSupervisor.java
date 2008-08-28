@@ -37,14 +37,15 @@ public class PoolSupervisor implements Runnable {
 
 	public void run() {
 		try {
-			ThreadPoolExecutor pool = new ThreadPoolExecutor(20, 30, 5,
+			List<PoolConfig.ServicePool> configs = config.getServicePools();
+			ThreadPoolExecutor pool = new ThreadPoolExecutor(configs.size(), configs.size(), 5,
 											TimeUnit.SECONDS, new ArrayBlockingQueue(30));
 			pool.setRejectedExecutionHandler(new RejectedExecutionHandler() {
 					public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+						logger.warn("failed to start pool manager!");
 						//executor.execute(r);
 					}
 				});
-			List<PoolConfig.ServicePool> configs = config.getServicePools();
 			for (PoolConfig.ServicePool poolCfg : configs) {
 				PoolManager pm = (PoolManager)factory.getBean("manager");
 				pm.setPoolConfig(poolCfg);

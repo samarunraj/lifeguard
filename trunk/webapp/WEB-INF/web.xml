@@ -4,6 +4,11 @@
 
 <web-app>
 	<listener>
+		<!-- Use this one to pull the aws creds from included aws.properties files
+		-->
 		<listener-class>com.directthought.lifeguard.LifeguardWebStarter</listener-class>
+		<!-- Use this one instead to pull creds from global resources defined in server XML
+		<listener-class>com.directthought.lifeguard.LifeguardWebStarterEnv</listener-class>
+		-->
 	</listener>
 </web-app>

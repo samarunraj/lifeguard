@@ -24,11 +24,12 @@ public class DequeueSample {
 				logger.error("usage: DequeueSample <queueId>");
 			}
 			Properties props = new Properties();
-			props.load(AddWork.class.getClassLoader().getResourceAsStream("aws.properties"));
+			props.load(DequeueSample.class.getClassLoader().getResourceAsStream("aws.properties"));
 
 			String queueName = args[0];
 
 			// Retrieve the message queue object (by name).
+			logger.info("access id = "+props.getProperty("aws.accessId"));
 			QueueService qs = new QueueService(props.getProperty("aws.accessId"),
 						props.getProperty("aws.secretKey"));
 			MessageQueue msgQueue = qs.getOrCreateMessageQueue(queueName);
