@@ -3,6 +3,7 @@ package com.directthought.lifeguard;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,6 +46,8 @@ import com.directthought.lifeguard.util.QueueUtil;
 public abstract class IngestorBase {
 	private static Log logger = LogFactory.getLog(IngestorBase.class);
 
+	protected ObjectFactory of;
+
 	private String awsAccessId;
 	private String awsSecretKey;
 	private String queuePrefix;
@@ -75,6 +78,18 @@ public abstract class IngestorBase {
 		this.outputBucket = outputBucket;
 		this.statusQueueName = statusQueueName;
 		this.workflow = workflow;
+
+		of = new ObjectFactory();
+	}
+
+	protected IngestorBase(String awsAccessId, String awsSecretKey, String queuePrefix,
+							String project, String batch,
+							String inputBucket, String outputBucket,
+							String statusQueueName, File workflow) throws JAXBException, FileNotFoundException {
+		this(awsAccessId, awsSecretKey, queuePrefix, project, batch,
+			inputBucket, outputBucket, statusQueueName, (Workflow)null);
+		this.workflow = JAXBuddy.deserializeXMLStream(Workflow.class,
+											new FileInputStream(workflow));
 	}
 
 	public void setProxyValues(String proxyHost, int proxyPort) {
@@ -126,9 +141,7 @@ public abstract class IngestorBase {
 		ingest(mFiles, null, null);
 	}
 
-	protected void ingest(List<MetaFile> files, List<Properties> properties, Map<String, String> outputKeys) {
-		ObjectFactory of = new ObjectFactory();
-
+	private void ingest(List<MetaFile> files, List<Properties> properties, Map<String, String> outputKeys) {
 		// connect to queues
 		QueueService qs = new QueueService(awsAccessId, awsSecretKey);
 		if (proxyHost != null && !proxyHost.equals("")) {
@@ -139,49 +152,7 @@ public abstract class IngestorBase {
 										queuePrefix+workflow.getServices().get(0).getWorkQueue());
 
 		try {
-			// build common parts of work request
-			WorkRequest wr = of.createWorkRequest();
-			wr.setProject(project);
-			wr.setBatch(batch);
-			wr.setServiceName("ingestor");
-			wr.setInputBucket(inputBucket);
-			wr.setOutputBucket(outputBucket);
-			if (outputKeys != null) {
-				List<OutputKey> tmp = wr.getOutputKeies();
-				for (String key : outputKeys.keySet()) {
-					OutputKey ok = of.createWorkRequestOutputKey();
-					ok.setValue(key);
-					ok.setType(outputKeys.get(key));
-					tmp.add(ok);
-				}
-			}
-			List<ParamType> wrParams = wr.getParams();
-			// build pipeline steps
-			Step step = of.createStep();
-			boolean first = true;
-			for (Service svc : workflow.getServices()) {
-				if (!first) {
-					if (wr.getNextStep() == null) {	// make sure top level is set on request
-						wr.setNextStep(step);
-					}
-					else {
-						Step tmp = of.createStep();
-						step.setNextStep(tmp);
-						step = tmp;
-					}
-					step.setWorkQueue(svc.getWorkQueue());
-					step.setType(svc.getInputType());
-				}
-				else {
-					first = false;
-				}
-				// accumulate params from all of the services
-				for (ParamType p : svc.getParams()) {
-					wrParams.add(p);
-				}
-			}
-			step.setNextStep(null);	// null out last step, filled in for next loop iteration
-
+			WorkRequest wr = constructBaseWorkRequest(outputKeys);
 			for (MetaFile file : files) {
 				long startTime = System.currentTimeMillis();
 				if (file.file != null) {
@@ -205,18 +176,85 @@ public abstract class IngestorBase {
 				ref.setLocation("");
 				wr.setInput(ref);
 				long endTime = System.currentTimeMillis();
-				String message = JAXBuddy.serializeXMLString(WorkRequest.class, wr);
-				QueueUtil.sendMessageForSure(workQueue, message);
-				// send work status message
-				WorkStatus ws = MessageHelper.createIngestStatus(wr, file, startTime, endTime, "localhost");
-				message = JAXBuddy.serializeXMLString(WorkStatus.class, ws);
-				QueueUtil.sendMessageForSure(statusQueue, message);
+				sendMessages(wr, file, startTime, endTime, workQueue, statusQueue);
 				logger.debug("ingested : "+((file.file==null)?file.key:file.file.getName()));
+			}
+			if (properties != null) {
+				for (Properties props : properties) {
+					long startTime = System.currentTimeMillis();
+					wr = constructBaseWorkRequest(outputKeys);
+					List<ParamType> params = wr.getParams();
+					for (Object name : props.keySet()) {
+						ParamType pt = of.createParamType();
+						pt.setName((String)name);
+						pt.setValue(props.getProperty((String)name));
+						params.add(pt);
+					}
+					long endTime = System.currentTimeMillis();
+					sendMessages(wr, null, startTime, endTime, workQueue, statusQueue);
+					logger.debug("ingested propery job");
+				}
 			}
 		} catch (IOException ex) {
 			logger.error("Problem ingesting! "+ex.getMessage(), ex);
 		} catch (Exception ex) {
 			logger.error("Problem ingesting! "+ex.getMessage(), ex);
 		}
+	}
+
+	// build common parts of work request
+	protected WorkRequest constructBaseWorkRequest(Map<String, String> outputKeys) {
+		WorkRequest wr = of.createWorkRequest();
+		wr.setProject(project);
+		wr.setBatch(batch);
+		wr.setServiceName("ingestor");
+		wr.setInputBucket(inputBucket);
+		wr.setOutputBucket(outputBucket);
+		if (outputKeys != null) {
+			List<OutputKey> tmp = wr.getOutputKeies();
+			for (String key : outputKeys.keySet()) {
+				OutputKey ok = of.createWorkRequestOutputKey();
+				ok.setValue(key);
+				ok.setType(outputKeys.get(key));
+				tmp.add(ok);
+			}
+		}
+		List<ParamType> wrParams = wr.getParams();
+		// build pipeline steps
+		Step step = of.createStep();
+		boolean first = true;
+		for (Service svc : workflow.getServices()) {
+			if (!first) {
+				if (wr.getNextStep() == null) {	// make sure top level is set on request
+					wr.setNextStep(step);
+				}
+				else {
+					Step tmp = of.createStep();
+					step.setNextStep(tmp);
+					step = tmp;
+				}
+				step.setWorkQueue(svc.getWorkQueue());
+				step.setType(svc.getInputType());
+			}
+			else {
+				first = false;
+			}
+			// accumulate params from all of the services
+			for (ParamType p : svc.getParams()) {
+				wrParams.add(p);
+			}
+		}
+		step.setNextStep(null);	// null out last step, filled in for next loop iteration
+		return wr;
+	}
+
+	protected void sendMessages(WorkRequest wr, MetaFile file, long startTime, long endTime,
+				MessageQueue workQueue, MessageQueue statusQueue) throws JAXBException, IOException {
+		String message = JAXBuddy.serializeXMLString(WorkRequest.class, wr);
+		QueueUtil.sendMessageForSure(workQueue, message);
+		// send work status message
+		WorkStatus ws = MessageHelper.createIngestStatus(wr, file, startTime, endTime, "localhost");
+		message = JAXBuddy.serializeXMLString(WorkStatus.class, ws);
+		QueueUtil.sendMessageForSure(statusQueue, message);
 	}
 }
