@@ -30,15 +30,17 @@ public class MessageHelper {
 		ret.setBatch(wr.getBatch());
 		ret.setServiceName(wr.getServiceName());
 		ret.setInputBucket(wr.getInputBucket());
-		FileRef ref = of.createFileRef();
-		if (input.file == null) {
-			ref.setKey(input.key);
-			ref.setType(input.mimeType);
+		if (input != null) {
+			FileRef ref = of.createFileRef();
+			if (input.file == null) {
+				ref.setKey(input.key);
+				ref.setType(input.mimeType);
+			}
+			else {
+				ref.setLocation(input.file.getName());
+			}
+			ret.setInput(ref);
 		}
-		else {
-			ref.setLocation(input.file.getName());
-		}
-		ret.setInput(ref);
 		ret.setOutputBucket(wr.getOutputBucket());
 		ret.getOutputs().add(wr.getInput());
 		List<ParamType> params = ret.getParams();
