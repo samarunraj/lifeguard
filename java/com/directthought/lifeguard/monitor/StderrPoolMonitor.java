@@ -25,11 +25,15 @@ public class StderrPoolMonitor implements PoolMonitor {
 		System.err.println(">>>>>>>>>>> instance terminated : "+id);
 	}
 
-	public void instanceBusy(String id) {
-		System.err.println(">>>>>>>>>>> instance busy : "+id);
+	public void instanceBusy(String id, int loadEstimate) {
+		System.err.println(">>>>>>>>>>> instance busy : "+id+" load : "+loadEstimate);
 	}
 
-	public void instanceIdle(String id) {
-		System.err.println(">>>>>>>>>>> instance idle : "+id);
+	public void instanceIdle(String id, int loadEstimate) {
+		System.err.println(">>>>>>>>>>> instance idle : "+id+" load : "+loadEstimate);
+	}
+
+	public void instanceUnresponsive(String id) {
+		System.err.println(">>>>>>>>>>> instance not responding : "+id);
 	}
 }

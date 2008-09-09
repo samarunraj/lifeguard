@@ -178,27 +178,25 @@ public class PoolManager implements Runnable {
 						try {
 							InstanceStatus status = JAXBuddy.deserializeXMLStream(InstanceStatus.class,
 										new ByteArrayInputStream(msg.getMessageBody().getBytes()));
-							// assume we have a change of state, so move instance between busy/idle
 							String id = status.getInstanceId();
 							//logger.debug("received instance status "+id+" is "+status.getState());
 							int idx = instances.indexOf(new Instance(id));
 							if (idx > -1) {
 								Instance i = instances.get(idx);
-								//long interval = status.getLastInterval().getTimeInMillis(new Date(0));
+								i.lastReportTime = status.getTimestamp().toGregorianCalendar().getTimeInMillis();
+								i.loadEstimate = status.getDutyCycle().intValue();
 								if (status.getState().equals("busy")) {
 									if (this.monitor != null) {
-										monitor.instanceBusy(id);
+										monitor.instanceBusy(id, i.loadEstimate);
 									}
 								}
 								else if (status.getState().equals("idle")) {
 									if (this.monitor != null) {
-										monitor.instanceIdle(id);
+										monitor.instanceIdle(id, i.loadEstimate);
 									}
 								}
 								else {
 								}
-								i.lastReportTime = status.getTimestamp().toGregorianCalendar().getTimeInMillis();
-								i.loadEstimate = status.getDutyCycle().intValue();
 							}
 							else {
 								logger.debug("ignoring message for instance not known");
@@ -300,7 +298,14 @@ public class PoolManager implements Runnable {
 				}
 				// for servers that haven't reported recently, see if they are deliquent enough to
 				// terminate and replace
+				long unresponsive = laggardLimit / 3;
 				for (Instance i : instances) {
+					// report possible failure if 1/3 of laggardLimit has gone by
+					if (i.lastReportTime < (System.currentTimeMillis()-unresponsive)) {
+						if (this.monitor != null) {
+							monitor.instanceUnresponsive(i.id);
+						}
+					}
 					// if more than N minutes have gone by without a report, do the needful
 					if (i.lastReportTime < (System.currentTimeMillis()-laggardLimit)) {
 						logger.error("Instance "+i.id+" is being replaced");
@@ -445,11 +450,8 @@ public class PoolManager implements Runnable {
 		String id;
 		String hostName;
 		int loadEstimate;
-		long lastIdleInterval;	// last reported interval of idle-ness
-		long lastBusyInterval;	// last reported interval of busy-ness
 		long lastReportTime;
 		long startupTime;		// the time this instances was first started
-		int failCount;			// number of times ping failed
 
 		Instance(String id) {
 			this(id, null);
@@ -461,7 +463,6 @@ public class PoolManager implements Runnable {
 			loadEstimate = 0;
 			lastReportTime = System.currentTimeMillis();
 			startupTime = System.currentTimeMillis();
-			failCount = 0;
 		}
 
 

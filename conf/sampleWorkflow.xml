@@ -1,11 +1,11 @@
 <Workflow xmlns="http://lifeguard-ws.directthought.com/doc/2007-11-20/">
+<!--
 	<Service>
 		<Name>TextToPDF</Name>
 		<WorkQueue>texttopdf-input</WorkQueue>
 		<InputType>text/plain</InputType>
 		<OutputType>application/pdf</OutputType>
 	</Service>
-<!--
 	<Service>
 		<Name>Ghostscript</Name>
 		<WorkQueue>ghostscript-input</WorkQueue>
@@ -14,7 +14,6 @@
 		<Param name='color'>MONO</Param>
 	</Service>
 	-->
-<!--
 	<Service>
 		<Name>Transcode</Name>
 		<WorkQueue>transcode-input</WorkQueue>
@@ -34,5 +33,6 @@
 		<Param name='xcode.vcodec'>mpeg4</Param>
 		<Param name='xcode.acodec'>ac3</Param>
 	</Service>
+<!--
 	-->
 </Workflow>

@@ -69,12 +69,15 @@ public class SimulateServers implements PoolMonitor {
 		instances.remove(id).shutdown();
 	}
 
-	public void instanceBusy(String id) {
+	public void instanceBusy(String id, int load) {
 		System.err.println(">>>>>>>>>>> instance busy : "+id);
 	}
 
-	public void instanceIdle(String id) {
+	public void instanceIdle(String id, int load) {
 		System.err.println(">>>>>>>>>>> instance idle : "+id);
+	}
+
+	public void instanceUnresponsive(String id) {
 	}
 
 	private class SimThread implements Runnable {
