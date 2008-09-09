@@ -301,12 +301,6 @@ public abstract class AbstractBaseService implements Runnable {
 	private void setPoolStatus(boolean busy) {
 		long now = System.currentTimeMillis();
 		this.busy = busy;
-		if (busy) {
-			lastIdleInterval = now - lastTime;
-		}
-		else {
-			lastBusyInterval = now - lastTime;
-		}
 		lastTime = now;
 	}
 
@@ -330,6 +324,13 @@ public abstract class AbstractBaseService implements Runnable {
 
 		private void sendPoolStatus() {
 			try {
+				long now = System.currentTimeMillis();
+				if (busy) {
+					lastBusyInterval = now - lastTime;
+				}
+				else {
+					lastIdleInterval = now - lastTime;
+				}
 				int dutyCycle = (int)((lastBusyInterval / (float)(lastIdleInterval + lastBusyInterval)) * 100);
 				InstanceStatus status = MessageHelper.createInstanceStatus(instanceId, busy, dutyCycle);
 				String message = JAXBuddy.serializeXMLString(InstanceStatus.class, status);

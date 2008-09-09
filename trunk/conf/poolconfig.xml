@@ -45,7 +45,7 @@
 	</ServicePool>
 	<ServicePool>
 		<ServiceName>Transcode</ServiceName>
-		<ServiceAMI>ami-47c6222e</ServiceAMI>
+		<ServiceAMI>ami-21c62248</ServiceAMI>
 		<PoolStatusQueue>poolStatusTranscode</PoolStatusQueue>
 		<ServiceWorkQueue>transcode-input</ServiceWorkQueue>
 		<RampUpInterval>2</RampUpInterval>
