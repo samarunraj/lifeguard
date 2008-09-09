@@ -305,7 +305,7 @@ public abstract class AbstractBaseService implements Runnable {
 			lastIdleInterval = now - lastTime;
 		}
 		else {
-			lastIdleInterval = now - lastTime;
+			lastBusyInterval = now - lastTime;
 		}
 		lastTime = now;
 	}

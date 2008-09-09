@@ -43,10 +43,9 @@
 		<QueueSizeFactor>50</QueueSizeFactor>
 		<FindExistingServers>false</FindExistingServers>
 	</ServicePool>
-	<!--
 	<ServicePool>
 		<ServiceName>Transcode</ServiceName>
-		<ServiceAMI>ami-ca27c2a3</ServiceAMI>
+		<ServiceAMI>ami-47c6222e</ServiceAMI>
 		<PoolStatusQueue>poolStatusTranscode</PoolStatusQueue>
 		<ServiceWorkQueue>transcode-input</ServiceWorkQueue>
 		<RampUpInterval>2</RampUpInterval>
@@ -54,10 +53,11 @@
 		<RampDownInterval>1</RampDownInterval>
 		<RampDownDelay>480</RampDownDelay>
 		<MinSize>0</MinSize>
-		<MaxSize>0</MaxSize>
+		<MaxSize>10</MaxSize>
 		<QueueSizeFactor>25</QueueSizeFactor>
 		<FindExistingServers>false</FindExistingServers>
 	</ServicePool>
+	<!--
 	<ServicePool>
 		<ServiceName>Ghostscript</ServiceName>
 		<ServiceAMI>ami-f854b191</ServiceAMI>

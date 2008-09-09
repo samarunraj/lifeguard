@@ -11,6 +11,7 @@
 		<serviceName><%=pool.getServiceName()%></serviceName>
 		<serversRunning><%=pool.getServersRunning()%></serversRunning>
 		<serversBusy><%=pool.getServersBusy()%></serversBusy>
+		<poolLoad><%=pool.getPoolLoad()%></poolLoad>
 		<eventLog>
 			<% for (PoolEvent evt : pool.getEventList()) { %>
 				<event>
