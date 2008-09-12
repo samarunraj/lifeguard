@@ -122,8 +122,50 @@ public class PoolManager implements Runnable {
 		}
 	}
 
+	// these getter/setters are for config'ed data
+	public String getServiceName() {
+		return config.getServiceName();
+	}
+
+	public String getServiceAMI() {
+		return config.getServiceAMI();
+	}
+
+	public String getInstanceType() {
+		return config.getInstanceType();
+	}
+
+	public int getMinimumSize() {
+		return config.getMinSize();
+	}
+
+	public int getMaximumSize() {
+		return config.getMaxSize();
+	}
+
+	public int getRampUpInterval() {
+		return config.getRampUpInterval();
+	}
+
+	public int getRampDownInterval() {
+		return config.getRampDownInterval();
+	}
+
+	public int getRampUpDelay() {
+		return config.getRampUpDelay();
+	}
+
+	public int getRampDownDelay() {
+		return config.getRampDownDelay();
+	}
+
+	public int getQueueSizeFactor() {
+		return config.getQueueSizeFactor();
+	}
+
 	protected String getUserData() {
-		return awsAccessId+" "+awsSecretKey+" "+queuePrefix+" "+config.getServiceName();
+		return awsAccessId+" "+awsSecretKey+" "+queuePrefix+
+					" "+config.getServiceName()+" "+config.getAdditionalParams().trim();
 	}
 
 	public void run() {

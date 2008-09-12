@@ -46,6 +46,7 @@
 	<ServicePool>
 		<ServiceName>Transcode</ServiceName>
 		<ServiceAMI>ami-21c62248</ServiceAMI>
+		<AdditionalParams>dak.service.jars</AdditionalParams>
 		<PoolStatusQueue>poolStatusTranscode</PoolStatusQueue>
 		<ServiceWorkQueue>transcode-input</ServiceWorkQueue>
 		<RampUpInterval>2</RampUpInterval>

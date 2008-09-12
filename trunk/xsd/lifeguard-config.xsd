@@ -29,6 +29,9 @@
 							<xs:element name="ServiceAMI" type="xs:string" minOccurs="1" maxOccurs="1"/>
 							<xs:element name="InstanceType" type="xs:string" minOccurs="0" maxOccurs="1"/>
 							<xs:element name="Kernel" type="xs:string" minOccurs="0" maxOccurs="1"/>
+							<!-- This value contains more space-separated values that will be  -->
+							<!-- added to the end of the user data string.                     -->
+							<xs:element name="AdditionalParams" type="xs:string" minOccurs="0" maxOccurs="1"/>
 							<xs:element name="PoolStatusQueue" type="xs:string" minOccurs="1" maxOccurs="1"/>
 							<xs:element name="ServiceWorkQueue" type="xs:string" minOccurs="1" maxOccurs="1"/>
 							<xs:element name="RampUpInterval" type="xs:int" minOccurs="1" maxOccurs="1"/>
