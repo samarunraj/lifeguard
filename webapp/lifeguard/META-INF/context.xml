@@ -1,0 +1,7 @@
+<Context path="/scale" debug="5" reloadable="true" crossContext="true">
+	<ResourceLink name="aws.accessId" global="aws.accessId" type="java.lang.String"/>
+	<ResourceLink name="aws.secretKey" global="aws.secretKey" type="java.lang.String"/>
+	<ResourceLink name="aws.prefix" global="aws.prefix" type="java.lang.String"/>
+	<ResourceLink name="proxy.host" global="proxy.host" type="java.lang.String"/>
+	<ResourceLink name="proxy.port" global="proxy.port" type="java.lang.String"/>
+</Context>
