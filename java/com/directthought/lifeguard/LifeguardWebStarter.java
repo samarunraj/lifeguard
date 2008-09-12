@@ -55,6 +55,7 @@ public class LifeguardWebStarter implements ServletContextListener {
 			superVisor.setPoolConfig(config);
 			superVisor.setBeanFactory(factory);
 			superVisor.run();
+			evt.getServletContext().setAttribute("supervisor", superVisor);
 
 			Object mgr = factory.getBean("datamanager");
 			evt.getServletContext().setAttribute("datamanager", mgr);

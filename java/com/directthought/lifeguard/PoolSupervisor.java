@@ -35,6 +35,10 @@ public class PoolSupervisor implements Runnable {
 		this.factory = factory;
 	}
 
+	public List<PoolManager> getPoolManagers() {
+		return this.pools;
+	}
+
 	public void run() {
 		try {
 			List<PoolConfig.ServicePool> configs = config.getServicePools();

@@ -73,10 +73,14 @@
 		</javac>
     </target>
 
-	<taskdef name="mxmlc" classname="flex.ant.MxmlcTask"/>
 
-	<target name="flex">
-		<mxmlc file="flex/Lifeguard.mxml" output="${lifeguard.build.webapp}/Lifeguard.swf" as3="true">
+	<target name="check.flex">
+		<uptodate property="flexSame" srcfile="flex/Lifeguard.mxml" targetfile="${lifeguard.build.webapp}/lifeguard/Lifeguard.swf"/>
+	</target>
+
+	<target name="flex" depends="check.flex" unless="flexSame">
+		<taskdef name="mxmlc" classname="flex.ant.MxmlcTask"/>
+		<mxmlc file="flex/Lifeguard.mxml" output="${lifeguard.build.webapp}/lifeguard/Lifeguard.swf" as3="true">
 			<source-path path-element="${FLEX_HOME}/frameworks"/>
 		</mxmlc>
 	</target>
