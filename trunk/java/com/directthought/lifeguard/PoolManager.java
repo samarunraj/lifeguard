@@ -351,8 +351,8 @@ public class PoolManager implements Runnable {
 					// if more than N minutes have gone by without a report, do the needful
 					if (i.lastReportTime < (System.currentTimeMillis()-laggardLimit)) {
 						logger.error("Instance "+i.id+" is being replaced");
-						terminateInstances(new Instance [] {i}, true);
 						launchInstances(1);
+						terminateInstances(new Instance [] {i}, true);
 					}
 				}
 
