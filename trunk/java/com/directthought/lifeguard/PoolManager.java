@@ -19,10 +19,10 @@ import com.xerox.amazonws.ec2.InstanceType;
 import com.xerox.amazonws.ec2.Jec2;
 import com.xerox.amazonws.ec2.LaunchConfiguration;
 import com.xerox.amazonws.ec2.ReservationDescription;
-import com.xerox.amazonws.sqs.Message;
-import com.xerox.amazonws.sqs.MessageQueue;
-import com.xerox.amazonws.sqs.QueueService;
-import com.xerox.amazonws.sqs.SQSException;
+import com.xerox.amazonws.sqs2.Message;
+import com.xerox.amazonws.sqs2.MessageQueue;
+import com.xerox.amazonws.sqs2.QueueService;
+import com.xerox.amazonws.sqs2.SQSException;
 
 import com.directthought.lifeguard.jaxb.InstanceStatus;
 import com.directthought.lifeguard.jaxb.PoolConfig.ServicePool;

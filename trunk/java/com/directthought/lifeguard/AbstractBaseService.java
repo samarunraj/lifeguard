@@ -27,10 +27,10 @@ import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.AWSCredentials;
 
 import com.xerox.amazonws.common.JAXBuddy;
-import com.xerox.amazonws.sqs.Message;
-import com.xerox.amazonws.sqs.MessageQueue;
-import com.xerox.amazonws.sqs.QueueService;
-import com.xerox.amazonws.sqs.SQSException;
+import com.xerox.amazonws.sqs2.Message;
+import com.xerox.amazonws.sqs2.MessageQueue;
+import com.xerox.amazonws.sqs2.QueueService;
+import com.xerox.amazonws.sqs2.SQSException;
 
 import com.directthought.lifeguard.jaxb.FileRef;
 import com.directthought.lifeguard.jaxb.InstanceStatus;
@@ -358,7 +358,7 @@ public abstract class AbstractBaseService implements Runnable {
 				try { Thread.sleep(25000); } catch (InterruptedException ex) { interrupt(); }
 				while (!isInterrupted()) {
 					try {
-						queue.setVisibilityTimeout(msg, 30);
+						queue.setMessageVisibilityTimeout(msg, 30);
 						break;
 					} catch (SQSException ex) {
 						logger.warn("Error setting visibility timeout, Retrying.");
