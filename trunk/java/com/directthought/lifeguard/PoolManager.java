@@ -37,7 +37,7 @@ public class PoolManager implements Runnable {
 	protected String queuePrefix;
 	protected ServicePool config;
 	protected PoolMonitor monitor;
-	protected int receiveCount = 20;
+	protected int receiveCount = 10;
 	protected int idleBumpInterval = 120000;
 	protected long laggardLimit = 600000;
 	protected int minLifetimeInMins = 0;
