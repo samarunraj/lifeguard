@@ -19,7 +19,7 @@ import com.directthought.lifeguard.util.QueueUtil;
 
 public class StatusLogger implements Runnable {
 	private static Log logger = LogFactory.getLog(AbstractBaseService.class);
-	private static int RECEIVE_COUNT = 20;
+	private static int RECEIVE_COUNT = 10;
 	private String accessId;
 	private String secretKey;
 	private String queuePrefix;
