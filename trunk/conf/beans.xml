@@ -9,7 +9,7 @@
 		<property name="secretKey" value="${aws.secretKey}"/>
 		<property name="queuePrefix" value="${aws.queuePrefix}"/>
 		<property name="poolMonitor"><ref bean="monitor"/></property>
-		<property name="receiveCount" value="20"/>
+		<property name="receiveCount" value="10"/>
 		<property name="laggardLimit" value="600000"/>
 		<property name="keypairName" value="${aws.queuePrefix}-keypair"/>
 		<property name="noLaunch" value="false"/>

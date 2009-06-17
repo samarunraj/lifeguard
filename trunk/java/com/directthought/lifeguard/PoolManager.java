@@ -443,7 +443,7 @@ public class PoolManager implements Runnable {
 				}
 			}
 		} catch (EC2Exception ex) {
-			logger.warn("Failed to launch instance(s). Will retry");
+			logger.warn("Failed to launch instance(s). Will retry "+ex.getMessage());
 		}
 	}
 
