@@ -32,8 +32,13 @@ public class PoolManager implements Runnable {
 	private static Log logger = LogFactory.getLog(PoolManager.class);
 
 	// configuration items
+	protected String cloudType;	// should be AmazonEC2 or Eucalyptus
 	protected String awsAccessId;
 	protected String awsSecretKey;
+	protected String secretAccessId;
+	protected String secretSecretKey;
+	protected String dblSecretAccessId;
+	protected String dblSecretSecretKey;
 	protected String queuePrefix;
 	protected ServicePool config;
 	protected PoolMonitor monitor;
@@ -46,6 +51,8 @@ public class PoolManager implements Runnable {
 	protected int secondsToSleep = 4;
 	protected String proxyHost;
 	protected int proxyPort;
+	protected String cloudHost;
+	protected int cloudPort;
 
 	// runtime data - stuff to save when saving state
 	protected List<Instance> instances;
@@ -60,12 +67,32 @@ public class PoolManager implements Runnable {
 		instances = new ArrayList<Instance>();
 	}
 
+	public void setCloudType(String type) {
+		cloudType = type;
+	}
+
 	public void setAccessId(String id) {
 		awsAccessId = id;
 	}
 
 	public void setSecretKey(String key) {
 		awsSecretKey = key;
+	}
+
+	public void setSecretAccessId(String id) {
+		secretAccessId = id;
+	}
+
+	public void setSecretSecretKey(String key) {
+		secretSecretKey = key;
+	}
+
+	public void setDblSecretAccessId(String id) {
+		dblSecretAccessId = id;
+	}
+
+	public void setDblSecretSecretKey(String key) {
+		dblSecretSecretKey = key;
 	}
 
 	public void setQueuePrefix(String prefix) {
@@ -122,6 +149,20 @@ public class PoolManager implements Runnable {
 		}
 	}
 
+	public void setCloudHost(String host) {
+		cloudHost = host;
+	}
+
+	public void setCloudPort(String port) {
+		if (!port.trim().equals("")) {
+			try {
+				cloudPort = Integer.parseInt(port);
+			} catch (NumberFormatException ex) {
+				logger.error("Could not parse cloud port!", ex);
+			}
+		}
+	}
+
 	// these getter/setters are for config'ed data
 	public String getServiceName() {
 		return config.getServiceName();
@@ -164,8 +205,21 @@ public class PoolManager implements Runnable {
 	}
 
 	protected String getUserData() {
-		return awsAccessId+" "+awsSecretKey+" "+queuePrefix+
-					" "+config.getServiceName()+" "+config.getAdditionalParams().trim();
+		String ret = " "+queuePrefix+" "+config.getServiceName()+
+					" "+config.getAdditionalParams().trim();
+		if (isUsingDoubleSecret()) {
+			return secretAccessId+" "+secretSecretKey+ret;
+		}
+		else {
+			return awsAccessId+" "+awsSecretKey+ret;
+		}
+	}
+
+	protected boolean isUsingDoubleSecret() {
+		return (secretAccessId != null && secretSecretKey != null &&
+				dblSecretAccessId != null && dblSecretSecretKey != null &&
+				!secretAccessId.equals("") && !secretAccessId.equals("") &&
+				!dblSecretAccessId.equals("") && !dblSecretAccessId.equals(""));
 	}
 
 	public void run() {
@@ -176,31 +230,37 @@ public class PoolManager implements Runnable {
 			this.monitor.setWorkQueue(config.getServiceWorkQueue());
 		}
 		try {
-			logger.debug("mark 1");
 			// Find existing servers.
 			if (config.isFindExistingServers()) {
 				listInstances();
 			}
 
-			logger.debug("mark 2");
 			// fire up min servers first. They take a least 2 minutes to start up
 			int min = config.getMinSize();
 			if (min > instances.size()) {
 				launchInstances(min - instances.size());
 			}
-			logger.debug("mark 3 "+awsAccessId);
-			logger.debug("mark 3 "+awsSecretKey);
-			QueueService qs = new QueueService(awsAccessId, awsSecretKey);
+			QueueService qs = null;
+			if (isUsingDoubleSecret()) {
+				qs = new QueueService(dblSecretAccessId, dblSecretSecretKey);
+			}
+			else {
+				qs = new QueueService(awsAccessId, awsSecretKey);
+			}
 			if (!proxyHost.trim().equals("")) {
 				logger.debug("proxy being set");
 				qs.setProxyValues(proxyHost, proxyPort);
 			}
-			logger.debug("mark 4 "+queuePrefix+config.getPoolStatusQueue());
 			MessageQueue statusQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+config.getPoolStatusQueue());
-			logger.debug("mark 5");
 			MessageQueue workQueue = QueueUtil.getQueueOrElse(qs, queuePrefix+config.getServiceWorkQueue());
+			if (isUsingDoubleSecret()) {
+				// grant access to secret account
+				// allow secret to write status queue
+				statusQueue.addPermission("statusGrant", secretAccessId, "SendMessage");
+				// allow secret to all permissions work queue
+				statusQueue.addPermission("workGrant", secretAccessId, "*");
+			}
 
-			logger.debug("mark 6");
 			long startBusyInterval = 0;	// used to track time pool has no idle capacity
 			long startIdleInterval = 0;	// used to track time pool has spare capacity
 
@@ -374,7 +434,7 @@ public class PoolManager implements Runnable {
 
 	// Finds any EC2 instances based on the appropriate AMI that are already running
 	private void listInstances() throws EC2Exception {
-		Jec2 ec2 = new Jec2(awsAccessId, awsSecretKey);
+		Jec2 ec2 = getJec2();
 		if (!proxyHost.trim().equals("")) {
 			ec2.setProxyValues(proxyHost, proxyPort);
 		}
@@ -413,7 +473,7 @@ public class PoolManager implements Runnable {
 				}
 			}
 			else {
-				Jec2 ec2 = new Jec2(awsAccessId, awsSecretKey);
+				Jec2 ec2 = getJec2();
 				if (!proxyHost.trim().equals("")) {
 					ec2.setProxyValues(proxyHost, proxyPort);
 				}
@@ -464,7 +524,7 @@ public class PoolManager implements Runnable {
 					ids[x++] = i.id;
 				}
 				if (x == 0) return;
-				Jec2 ec2 = new Jec2(awsAccessId, awsSecretKey);
+				Jec2 ec2 = getJec2();
 				if (!proxyHost.trim().equals("")) {
 					ec2.setProxyValues(proxyHost, proxyPort);
 				}
@@ -486,6 +546,29 @@ public class PoolManager implements Runnable {
 		} catch (EC2Exception ex) {
 			logger.warn("Failed to terminate instance. Will retry", ex);
 		}
+	}
+
+	private Jec2 getJec2() {
+		Jec2 ret;
+		String localAccessId;
+		String localSecretKey;
+		if (isUsingDoubleSecret()) {
+			localAccessId = dblSecretAccessId;
+			localSecretKey = dblSecretSecretKey;
+		}
+		else {
+			localAccessId = awsAccessId;
+			localSecretKey = awsSecretKey;
+		}
+		if (cloudType.equals("AmazonEC2")) {
+			ret = new Jec2(localAccessId, localSecretKey);
+		}
+		else {	// equals Eucalyptus
+			ret = new Jec2(localAccessId, localSecretKey, false, cloudHost, cloudPort);
+			ret.setSignatureVersion(1);
+			ret.setResourcePrefix("/services/Eucalyptus");
+		}
+		return ret;
 	}
 
 	private class Instance implements Comparable {

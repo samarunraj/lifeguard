@@ -5,8 +5,16 @@
 	<bean id="supervisor" class="com.directthought.lifeguard.PoolSupervisor">
 	</bean>
 	<bean id="manager" class="com.directthought.lifeguard.PoolManager" singleton="false">
+		<property name="cloudType" value="AmazonEC2"/>
+		<!--
+		<property name="cloudType" value="Eucalyptus"/>
+		-->
 		<property name="accessId" value="${aws.accessId}"/>
 		<property name="secretKey" value="${aws.secretKey}"/>
+		<property name="secretAccessId" value="${aws.secret.accessId}"/>
+		<property name="secretSecretKey" value="${aws.secret.secretKey}"/>
+		<property name="dblSecretAccessId" value="${aws.double.secret.accessId}"/>
+		<property name="dblSecretSecretKey" value="${aws.double.secret.secretKey}"/>
 		<property name="queuePrefix" value="${aws.queuePrefix}"/>
 		<property name="poolMonitor"><ref bean="monitor"/></property>
 		<property name="receiveCount" value="10"/>
@@ -16,6 +24,9 @@
 		<property name="minimumLifetimeInMinutes" value="55"/>
 		<property name="proxyHost" value="${proxy.host}"/>
 		<property name="proxyPort" value="${proxy.port}"/>
+		<!-- these are only used if cloudType=Eucalyptus -->
+		<property name="cloudHost" value=""/>
+		<property name="cloudPort" value=""/>
 	</bean>
 	<bean id="monitor" class="com.directthought.lifeguard.monitor.PoolStatusCollector" singleton="false">
 		<property name="dataManager"><ref bean="datamanager"/></property>
@@ -34,6 +45,10 @@
 	<bean id="statuslogger" class="com.directthought.lifeguard.StatusLogger">
 		<property name="accessId" value="${aws.accessId}"/>
 		<property name="secretKey" value="${aws.secretKey}"/>
+		<property name="secretAccessId" value="${aws.secret.accessId}"/>
+		<property name="secretSecretKey" value="${aws.secret.secretKey}"/>
+		<property name="dblSecretAccessId" value="${aws.double.secret.accessId}"/>
+		<property name="dblSecretSecretKey" value="${aws.double.secret.secretKey}"/>
 		<property name="queuePrefix" value="${aws.queuePrefix}"/>
 		<property name="statusQueueName" value="workStatus-input"/>
 		<property name="statusSaver"><ref bean="statussaver"/></property>

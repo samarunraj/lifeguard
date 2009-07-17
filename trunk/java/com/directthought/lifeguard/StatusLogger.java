@@ -22,6 +22,10 @@ public class StatusLogger implements Runnable {
 	private static int RECEIVE_COUNT = 10;
 	private String accessId;
 	private String secretKey;
+	private String secretAccessId;
+	private String secretSecretKey;
+	private String dblSecretAccessId;
+	private String dblSecretSecretKey;
 	private String queuePrefix;
 	private String statusQueueName;
 	private StatusSaver saver;
@@ -38,6 +42,22 @@ public class StatusLogger implements Runnable {
 
 	public void setSecretKey(String key) {
 		secretKey = key;
+	}
+
+	public void setSecretAccessId(String id) {
+		secretAccessId = id;
+	}
+
+	public void setSecretSecretKey(String key) {
+		secretSecretKey = key;
+	}
+
+	public void setDblSecretAccessId(String id) {
+		dblSecretAccessId = id;
+	}
+
+	public void setDblSecretSecretKey(String key) {
+		dblSecretSecretKey = key;
 	}
 
 	public void setQueuePrefix(String prefix) {
@@ -69,7 +89,16 @@ public class StatusLogger implements Runnable {
 	public void run() {
 		try {
 			// connect to queues
-			QueueService qs = new QueueService(accessId, secretKey);
+			QueueService qs = null;
+			if (secretAccessId != null && secretSecretKey != null &&	// using double secret scheme
+				dblSecretAccessId != null && dblSecretSecretKey != null &&
+				!secretAccessId.equals("") && !secretAccessId.equals("") &&
+				!dblSecretAccessId.equals("") && !dblSecretAccessId.equals("")) {
+				qs = new QueueService(dblSecretAccessId, dblSecretSecretKey);
+			}
+			else {
+				qs = new QueueService(accessId, secretKey);
+			}
 			if (!proxyHost.trim().equals("")) {
 				qs.setProxyValues(proxyHost, proxyPort);
 			}
