@@ -42,6 +42,10 @@ public class LifeguardWebStarterEnv implements ServletContextListener {
 			Properties props = new Properties();
 			props.put("aws.accessId", getGlobalStringResource("aws.accessId"));
 			props.put("aws.secretKey", getGlobalStringResource("aws.secretKey"));
+			props.put("aws.secret.accessId", getGlobalStringResource("aws.secret.accessId"));
+			props.put("aws.secret.secretKey", getGlobalStringResource("aws.secret.secretKey"));
+			props.put("aws.double.secret.accessId", getGlobalStringResource("aws.double.secret.accessId"));
+			props.put("aws.double.secret.secretKey", getGlobalStringResource("aws.double.secret.secretKey"));
 			props.put("aws.queuePrefix", getGlobalStringResource("aws.prefix"));
 			props.put("proxy.host", getGlobalStringResource("proxy.host"));
 			props.put("proxy.port", getGlobalStringResource("proxy.port"));
@@ -87,7 +91,7 @@ public class LifeguardWebStarterEnv implements ServletContextListener {
             Context context = (Context)initContext.lookup("java:comp/env");
             return (String)context.lookup(propertyKey);
         } catch (Exception ex) {
-            logger.error("Couldn't locate JNDI resource : "+propertyKey, ex);
+            logger.error("Couldn't locate JNDI resource : "+propertyKey);
         }
         return "";
     }

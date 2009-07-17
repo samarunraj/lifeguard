@@ -90,6 +90,10 @@ public abstract class AbstractBaseService implements Runnable {
 		return config.getServiceName();
 	}
 
+	public String getInstanceId() {
+		return instanceId;
+	}
+
 	public void setSecondsToSleep(int secs) {
 		this.secondsToSleep = secs;
 	}
