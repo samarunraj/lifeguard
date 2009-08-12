@@ -141,7 +141,7 @@ public abstract class IngestorBase {
 		ingest(mFiles, null, null);
 	}
 
-	private void ingest(List<MetaFile> files, List<Properties> properties, Map<String, String> outputKeys) {
+	protected void ingest(List<MetaFile> files, List<Properties> properties, Map<String, String> outputKeys) {
 		// connect to queues
 		QueueService qs = new QueueService(awsAccessId, awsSecretKey);
 		if (proxyHost != null && !proxyHost.equals("")) {
@@ -153,31 +153,33 @@ public abstract class IngestorBase {
 
 		try {
 			WorkRequest wr = constructBaseWorkRequest(outputKeys);
-			for (MetaFile file : files) {
-				long startTime = System.currentTimeMillis();
-				if (file.file != null) {
-					// put file in S3 input bucket
-					String s3Key = MD5Util.md5Sum(new FileInputStream(file.file));
-					RestS3Service s3 = new RestS3Service(new AWSCredentials(awsAccessId, awsSecretKey));
-					if (proxyHost != null && !proxyHost.equals("")) {
-						s3.initHttpProxy(proxyHost, proxyPort);
+			if (files != null) {
+				for (MetaFile file : files) {
+					long startTime = System.currentTimeMillis();
+					if (file.file != null) {
+						// put file in S3 input bucket
+						String s3Key = MD5Util.md5Sum(new FileInputStream(file.file));
+						RestS3Service s3 = new RestS3Service(new AWSCredentials(awsAccessId, awsSecretKey));
+						if (proxyHost != null && !proxyHost.equals("")) {
+							s3.initHttpProxy(proxyHost, proxyPort);
+						}
+						S3Object obj = new S3Object(new S3Bucket(inputBucket), s3Key);
+						obj.setDataInputFile(file.file);
+						obj.setContentLength(file.file.length());
+						obj.setContentType(file.mimeType);
+						obj = s3.putObject(inputBucket, obj);
+						file.key = s3Key;
 					}
-					S3Object obj = new S3Object(new S3Bucket(inputBucket), s3Key);
-					obj.setDataInputFile(file.file);
-					obj.setContentLength(file.file.length());
-					obj.setContentType(file.mimeType);
-					obj = s3.putObject(inputBucket, obj);
-					file.key = s3Key;
+					// send work request message
+					FileRef ref = of.createFileRef();
+					ref.setKey(file.key);
+					ref.setType(file.mimeType);
+					ref.setLocation("");
+					wr.setInput(ref);
+					long endTime = System.currentTimeMillis();
+					sendMessages(wr, file, startTime, endTime, workQueue, statusQueue);
+					logger.debug("ingested : "+((file.file==null)?file.key:file.file.getName()));
 				}
-				// send work request message
-				FileRef ref = of.createFileRef();
-				ref.setKey(file.key);
-				ref.setType(file.mimeType);
-				ref.setLocation("");
-				wr.setInput(ref);
-				long endTime = System.currentTimeMillis();
-				sendMessages(wr, file, startTime, endTime, workQueue, statusQueue);
-				logger.debug("ingested : "+((file.file==null)?file.key:file.file.getName()));
 			}
 			if (properties != null) {
 				for (Properties props : properties) {
