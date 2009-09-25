@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Vector;
 
 import javax.xml.bind.JAXBException;
 
@@ -64,7 +65,7 @@ public class PoolManager implements Runnable {
 	 * This constructs a queue manager.
 	 */
 	public PoolManager() {
-		instances = new ArrayList<Instance>();
+		instances = new Vector<Instance>();
 	}
 
 	public void setCloudType(String type) {
@@ -242,7 +243,7 @@ public class PoolManager implements Runnable {
 			}
 			QueueService qs = null;
 			if (isUsingDoubleSecret()) {
-				qs = new QueueService(dblSecretAccessId, dblSecretSecretKey);
+				qs = new QueueService(secretAccessId, secretSecretKey);
 			}
 			else {
 				qs = new QueueService(awsAccessId, awsSecretKey);
@@ -256,9 +257,9 @@ public class PoolManager implements Runnable {
 			if (isUsingDoubleSecret()) {
 				// grant access to secret account
 				// allow secret to write status queue
-				statusQueue.addPermission("statusGrant", secretAccessId, "SendMessage");
+//				statusQueue.addPermission("statusGrant", secretAccessId, "SendMessage");
 				// allow secret to all permissions work queue
-				statusQueue.addPermission("workGrant", secretAccessId, "*");
+//				statusQueue.addPermission("workGrant", secretAccessId, "*");
 			}
 
 			long startBusyInterval = 0;	// used to track time pool has no idle capacity
@@ -268,52 +269,54 @@ public class PoolManager implements Runnable {
 			logger.debug("Starting PoolManager for service : "+config.getServiceName());
 			while (keepRunning) {
 				Message [] msgs = new Message[0];
-				try {
-					msgs = statusQueue.receiveMessages(receiveCount);
-				} catch (SQSException ex) {
-					logger.error("Error reading message, Retrying.", ex);
-				}
-				for (Message msg : msgs) {
-					if (!keepRunning) break;	// fast exit
-					if (msg != null) {	// process status message
-						// parse it, then deal with it
-						try {
-							InstanceStatus status = JAXBuddy.deserializeXMLStream(InstanceStatus.class,
-										new ByteArrayInputStream(msg.getMessageBody().getBytes()));
-							String id = status.getInstanceId();
-							//logger.debug("received instance status "+id+" is "+status.getState());
-							int idx = instances.indexOf(new Instance(id));
-							if (idx > -1) {
-								Instance i = instances.get(idx);
-								i.lastReportTime = status.getTimestamp().toGregorianCalendar().getTimeInMillis();
-								i.loadEstimate = status.getDutyCycle().intValue();
-								if (status.getState().equals("busy")) {
-									if (this.monitor != null) {
-										monitor.instanceBusy(id, i.loadEstimate);
+				do {
+					try {
+						msgs = statusQueue.receiveMessages(receiveCount);
+					} catch (SQSException ex) {
+						logger.error("Error reading message, Retrying.", ex);
+					}
+					for (Message msg : msgs) {
+						if (!keepRunning) break;	// fast exit
+						if (msg != null) {	// process status message
+							// parse it, then deal with it
+							try {
+								InstanceStatus status = JAXBuddy.deserializeXMLStream(InstanceStatus.class,
+											new ByteArrayInputStream(msg.getMessageBody().getBytes()));
+								String id = status.getInstanceId();
+								//logger.debug("received instance status "+id+" is "+status.getState());
+								int idx = instances.indexOf(new Instance(id));
+								if (idx > -1) {
+									Instance i = instances.get(idx);
+									i.lastReportTime = status.getTimestamp().toGregorianCalendar().getTimeInMillis();
+									i.loadEstimate = status.getDutyCycle().intValue();
+									if (status.getState().equals("busy")) {
+										if (this.monitor != null) {
+											monitor.instanceBusy(id, i.loadEstimate);
+										}
 									}
-								}
-								else if (status.getState().equals("idle")) {
-									if (this.monitor != null) {
-										monitor.instanceIdle(id, i.loadEstimate);
+									else if (status.getState().equals("idle")) {
+										if (this.monitor != null) {
+											monitor.instanceIdle(id, i.loadEstimate);
+										}
+									}
+									else {
 									}
 								}
 								else {
+									logger.debug("ignoring message for instance not known :"+id);
 								}
+							} catch (JAXBException ex) {
+								logger.error("Problem parsing instance status!", ex);
 							}
-							else {
-								logger.debug("ignoring message for instance not known");
-							}
-						} catch (JAXBException ex) {
-							logger.error("Problem parsing instance status!", ex);
+							statusQueue.deleteMessage(msg);
+							msg = null;
 						}
-						statusQueue.deleteMessage(msg);
-						msg = null;
+						else {
+							// if no messages, break out of status check loop, to main pool manage loop
+							break;
+						}
 					}
-					else {
-						// if no messages, break out of status check loop, to main pool manage loop
-						break;
-					}
-				}
+				} while (msgs.length > 0);
 				// calculate pool load average
 				int sum = 0;
 				for (Instance i : instances) {
@@ -425,6 +428,7 @@ public class PoolManager implements Runnable {
 			instances.clear();
 		} catch (Throwable t) {
 			logger.error("something went horribly wrong in the pool manager main loop!", t);
+			t.printStackTrace();
 		}
 	}
 
@@ -435,9 +439,6 @@ public class PoolManager implements Runnable {
 	// Finds any EC2 instances based on the appropriate AMI that are already running
 	private void listInstances() throws EC2Exception {
 		Jec2 ec2 = getJec2();
-		if (!proxyHost.trim().equals("")) {
-			ec2.setProxyValues(proxyHost, proxyPort);
-		}
 		List<String> params = new ArrayList<String>();
 		List<ReservationDescription> reservations = ec2.describeInstances(params);
 
@@ -474,9 +475,6 @@ public class PoolManager implements Runnable {
 			}
 			else {
 				Jec2 ec2 = getJec2();
-				if (!proxyHost.trim().equals("")) {
-					ec2.setProxyValues(proxyHost, proxyPort);
-				}
 				LaunchConfiguration lc =
 							new LaunchConfiguration(config.getServiceAMI(), 1, numToLaunch);
 				lc.setUserData(getUserData().getBytes());
@@ -525,9 +523,6 @@ public class PoolManager implements Runnable {
 				}
 				if (x == 0) return;
 				Jec2 ec2 = getJec2();
-				if (!proxyHost.trim().equals("")) {
-					ec2.setProxyValues(proxyHost, proxyPort);
-				}
 				ec2.terminateInstances(ids);
 			}
 			for (Instance i : instances) {
@@ -562,6 +557,9 @@ public class PoolManager implements Runnable {
 		}
 		if (cloudType.equals("AmazonEC2")) {
 			ret = new Jec2(localAccessId, localSecretKey);
+			if (!proxyHost.trim().equals("")) {
+				ret.setProxyValues(proxyHost, proxyPort);
+			}
 		}
 		else {	// equals Eucalyptus
 			ret = new Jec2(localAccessId, localSecretKey, false, cloudHost, cloudPort);
