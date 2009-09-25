@@ -94,7 +94,7 @@ public class StatusLogger implements Runnable {
 				dblSecretAccessId != null && dblSecretSecretKey != null &&
 				!secretAccessId.equals("") && !secretAccessId.equals("") &&
 				!dblSecretAccessId.equals("") && !dblSecretAccessId.equals("")) {
-				qs = new QueueService(dblSecretAccessId, dblSecretSecretKey);
+				qs = new QueueService(secretAccessId, secretSecretKey);
 			}
 			else {
 				qs = new QueueService(accessId, secretKey);
