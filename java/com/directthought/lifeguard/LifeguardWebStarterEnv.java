@@ -3,6 +3,7 @@ package com.directthought.lifeguard;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.util.Properties;
@@ -53,8 +54,7 @@ public class LifeguardWebStarterEnv implements ServletContextListener {
 			cfg.postProcessBeanFactory(factory);
 
 			// Load pool configuration first - fail early if it isn't available
-			PoolConfig config = JAXBuddy.deserializeXMLStream(PoolConfig.class,
-					evt.getServletContext().getResourceAsStream("/WEB-INF/classes/poolconfig.xml"));
+			PoolConfig config = getPoolConfig(evt.getServletContext().getResourceAsStream("/WEB-INF/classes/poolconfig.xml"));
 
 			// start status logger
 			statLog = (StatusLogger)factory.getBean("statuslogger");
@@ -83,6 +83,12 @@ public class LifeguardWebStarterEnv implements ServletContextListener {
 		} catch (Throwable t) {
 			logger.error("Uncaught error in spring/lifeguard shutdown", t);
 		}
+	}
+
+	// this is put into a getter so that this class can be overridden by a custom class that tweaks
+	// the service pool config to override some params programatically.
+	protected PoolConfig getPoolConfig(InputStream configStream) throws JAXBException {
+		return JAXBuddy.deserializeXMLStream(PoolConfig.class, configStream);
 	}
 
     private String getGlobalStringResource(String propertyKey) {
