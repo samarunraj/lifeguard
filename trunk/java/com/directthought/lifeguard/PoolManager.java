@@ -508,9 +508,8 @@ public class PoolManager implements Runnable {
 	private void terminateInstances(Instance [] instances, boolean force) {
 		logger.debug("Stopping server(s)");
 		try {
+			ArrayList<String> onesToKill = new ArrayList<String>();
 			if (!noLaunch) {
-				String [] ids = new String[instances.length];
-				int x=0;
 				for (Instance i : instances) {
 					// Don't stop instances before minLifetimeInMins
 					if (!i.isMinLifetimeElapsed() && !force) {
@@ -519,23 +518,19 @@ public class PoolManager implements Runnable {
 							minLifetimeInMins+" mins");
 						continue;
 					}
-					ids[x++] = i.id;
+					onesToKill.add(i.id);
 				}
-				if (x == 0) return;
+				if (onesToKill.size() == 0) return;
+				String [] ids = new String[onesToKill.size()];
 				Jec2 ec2 = getJec2();
-				ec2.terminateInstances(ids);
+				ec2.terminateInstances(onesToKill.toArray(ids));
 			}
 			for (Instance i : instances) {
-				// Don't stop instances before minLifetimeInMins
-				if (!i.isMinLifetimeElapsed() && !force) {
-					logger.debug("Keeping instance "+i.id+
-						" alive until it has lived for "+
-						minLifetimeInMins+" mins");
-					continue;
-				}
-				this.instances.remove(i);
-				if (this.monitor != null) {
-					monitor.instanceTerminated(i.id);
+				if (onesToKill.contains(i.id)) {
+					this.instances.remove(i);
+					if (this.monitor != null) {
+						monitor.instanceTerminated(i.id);
+					}
 				}
 			}
 		} catch (EC2Exception ex) {
