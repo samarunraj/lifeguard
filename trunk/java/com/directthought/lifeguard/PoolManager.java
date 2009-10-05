@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.Vector;
 
 import javax.xml.bind.JAXBException;
 
@@ -57,6 +56,7 @@ public class PoolManager implements Runnable {
 
 	// runtime data - stuff to save when saving state
 	protected List<Instance> instances;
+	protected int wishToTerminate = 0;
 
 	// transient data - not important to save
 	private boolean keepRunning = true;
@@ -65,7 +65,7 @@ public class PoolManager implements Runnable {
 	 * This constructs a queue manager.
 	 */
 	public PoolManager() {
-		instances = new Vector<Instance>();
+		instances = new ArrayList<Instance>();
 	}
 
 	public void setCloudType(String type) {
@@ -269,7 +269,7 @@ public class PoolManager implements Runnable {
 			logger.debug("Starting PoolManager for service : "+config.getServiceName());
 			while (keepRunning) {
 				Message [] msgs = new Message[0];
-				do {
+				do {	// loop through all messages in queue.. getting behind is bad
 					try {
 						msgs = statusQueue.receiveMessages(receiveCount);
 					} catch (SQSException ex) {
@@ -350,6 +350,7 @@ public class PoolManager implements Runnable {
 					int totalServers = instances.size();
 					logger.info("queue:"+queueDepth+
 								" servers:"+totalServers+
+								" active:"+countActiveServers()+
 								" load:"+poolLoad+
 								" ii:"+idleInterval+" bi:"+busyInterval);
 					if (idleInterval >= config.getRampDownDelay()) {	// idle interval has elapsed
@@ -404,7 +405,7 @@ public class PoolManager implements Runnable {
 				// for servers that haven't reported recently, see if they are deliquent enough to
 				// terminate and replace
 				long unresponsive = laggardLimit / 3;
-				for (Instance i : instances) {
+				for (Instance i : new ArrayList<Instance>(instances)) {
 					// report possible failure if 1/3 of laggardLimit has gone by
 					if (i.lastReportTime < (System.currentTimeMillis()-unresponsive)) {
 						if (this.monitor != null) {
@@ -416,6 +417,16 @@ public class PoolManager implements Runnable {
 						logger.error("Instance "+i.id+" is being replaced");
 						launchInstances(1);
 						terminateInstances(new Instance [] {i}, true);
+					}
+
+					// while we're here.. see if we wanted to terminate some but didn't
+					// due to billing optimizations.
+					// if any servers are in that sweet spot, terminate them
+					if (wishToTerminate > 0) {
+						if (i.isMinLifetimeElapsed()) {
+							terminateInstances(new Instance [] {i}, true);
+							wishToTerminate--;
+						}
 					}
 				}
 
@@ -459,6 +470,7 @@ public class PoolManager implements Runnable {
 	// Launches server(s) with user data of "accessId secretKey queuePrefix serviceName"
 	private void launchInstances(int numToLaunch) {
 		logger.debug("Starting "+numToLaunch+" server(s)");
+		wishToTerminate = 0;	// reset this if load is high enough to start more
 		try {
 			if (noLaunch) {
 				for (int i=0; i<numToLaunch; i++) {
@@ -513,6 +525,8 @@ public class PoolManager implements Runnable {
 				for (Instance i : instances) {
 					// Don't stop instances before minLifetimeInMins
 					if (!i.isMinLifetimeElapsed() && !force) {
+						// TODO: Could get higher than total # instances running. Not harmfull now, but should cap it.
+						wishToTerminate++;	// track how many don't get killed
 						logger.debug("Keeping instance "+i.id+
 							" alive until it has lived for "+
 							minLifetimeInMins+" mins");
@@ -536,6 +550,14 @@ public class PoolManager implements Runnable {
 		} catch (EC2Exception ex) {
 			logger.warn("Failed to terminate instance. Will retry", ex);
 		}
+	}
+
+	private int countActiveServers() {
+		int ret = 0;
+		for (Instance i: instances) {
+			if (i.isUpAndRunning()) ret++;
+		}
+		return ret;
 	}
 
 	private Jec2 getJec2() {
@@ -599,16 +621,29 @@ public class PoolManager implements Runnable {
 					return -1;
 				} else {
 					// The other instance has lived long enough, this one hasn't
-					return 1;
+					//return 1;
 				}
+			}
+			int myMinutesRunning = getNumMinutesRunningThisBillableHour();
+			int otherMinutesRunning = otherInstance.getNumMinutesRunningThisBillableHour();
+			if (myMinutesRunning != otherMinutesRunning) {
+				return otherMinutesRunning - myMinutesRunning;
 			}
 
 			return (loadEstimate - otherInstance.loadEstimate);
 		}
 
+		public int getNumMinutesRunningThisBillableHour() {
+			long runTimeMins = (System.currentTimeMillis() - startupTime) / 60000;
+			return (int)(runTimeMins % 60) + 1;
+		}
+
 		public boolean isMinLifetimeElapsed() {
-			long runTimeSecs = (System.currentTimeMillis() - startupTime) / 1000;
-			return (runTimeSecs > (minLifetimeInMins * 60)); 
+			return getNumMinutesRunningThisBillableHour() > minLifetimeInMins; 
+		}
+
+		public boolean isUpAndRunning() {
+			return (lastReportTime != startupTime);
 		}
 	}
 }
