@@ -24,6 +24,7 @@ import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
+import org.jets3t.service.multithread.S3ServiceSimpleMulti;
 import org.jets3t.service.security.AWSCredentials;
 
 import com.xerox.amazonws.common.JAXBuddy;
@@ -219,18 +220,21 @@ public abstract class AbstractBaseService implements Runnable {
 							}
 						}
 						// send results to S3
+						S3Bucket outBucket = new S3Bucket(request.getOutputBucket());
+						S3Object [] uploadObjects = new S3Object[results.size()];
+						int index = 0;
 						for (MetaFile file : results) {
 							if (file.key == null || file.key.trim().equals("")) {
 								file.key = MD5Util.md5Sum(new FileInputStream(file.file));
 							}
-							S3Bucket outBucket = new S3Bucket(request.getOutputBucket());
 							S3Object obj = new S3Object(outBucket, file.key);
 							obj.setDataInputFile(file.file);
 							obj.setContentLength(file.file.length());
 							obj.setContentType(file.mimeType);
-							obj = s3.putObject(outBucket, obj);
-							obj.closeDataInputStream();
+							uploadObjects[index++] = obj;
 						}
+						S3ServiceSimpleMulti s3multi = new S3ServiceSimpleMulti(s3);
+						s3multi.putObjects(outBucket, uploadObjects);
 						// after all transferred, delete them locally
 						for (MetaFile file : results) {
 							file.file.delete();
@@ -305,6 +309,12 @@ public abstract class AbstractBaseService implements Runnable {
 	private void setPoolStatus(boolean busy) {
 		long now = System.currentTimeMillis();
 		this.busy = busy;
+		if (busy) {
+			lastIdleInterval = now - lastTime;
+		}
+		else {
+			lastBusyInterval = now - lastTime;
+		}
 		lastTime = now;
 	}
 
