@@ -1,0 +1,8 @@
+I've implemented a parameter passing mechanism and thought it would be a good idea explain about the design.
+
+Parameters need to be passed to services and it is also nice is services can generate values that could be parameters to other services.
+Parameters for service can be defined in the ServiceConfig xml. Services can have a 0 or more parameters and define their type, range, preset options.
+Parameters can have their values specified in the Workflow xml. These values become part of the workflow definition, just like the sequence is services.
+Parameters values will also be seen in the WorkRequest and WorkStatus xml. The values will come from the Workflow xml and be placed into the WorkRequest. The service will report the values in the WorkStatus xml.
+
+There were options as far as how to structure the parameters in the xml. Certainly xml supports a nested structure that would allow parameters to be organized by service pretty easily. The other option was to use more of a flat list structure for all parameters. I opted for the latter because it is much easier to allow output parameters from a service to be used as input parameters for any arbitrary service. Organizing parameters for each service can be handled by using parameter name prefixes if necessary. An example of that would be prefixing a param for ffmpeg by "ffmpeg.outputFormat", or something more generic like "xcode.outputFormat". I think I prefer the more generic naming because when there is something like "ocr.score" which would quantify the success of an OCR operation, using "ocr"   instead of "ocropus" or "abbyy" would allow any other data extraction service to simply look at the score, regardless of which OCR services had done the work.
